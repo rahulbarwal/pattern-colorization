@@ -84,9 +84,26 @@ A powerful VS Code extension that enables users to highlight up to eight distinc
 
 ### Keyboard Shortcuts
 
-- `Cmd+Alt+P` (Mac) / `Ctrl+Alt+P` (Win/Linux) - Add new pattern
-- `Cmd+Alt+A` (Mac) / `Ctrl+Alt+A` (Win/Linux) - Add pattern from selection  
-- `Cmd+Alt+T` (Mac) / `Ctrl+Alt+T` (Win/Linux) - Toggle extension on/off
+#### Default Key Bindings
+- `F3` (Win/Linux) / `Cmd+G` (Mac) - Jump to next occurrence of any pattern
+- `Shift+F3` (Win/Linux) / `Cmd+Shift+G` (Mac) - Jump to previous occurrence of any pattern
+
+#### Optional Key Bindings (User Configurable)
+
+Users can manually add these keybindings in VS Code's Keyboard Shortcuts settings (`Cmd+K Cmd+S`):
+
+**Jump to next occurrence of selected pattern:**
+- Command: `patternColorization.jumpToNextSelectedPattern`
+- Suggested shortcut: `Ctrl+Shift+F3` (Win/Linux) / `Cmd+Option+G` (Mac)
+
+**Jump to previous occurrence of selected pattern:**
+- Command: `patternColorization.jumpToPreviousSelectedPattern`
+- Suggested shortcut: `Ctrl+Shift+F2` (Win/Linux) / `Cmd+Option+Shift+G` (Mac)
+
+To add these shortcuts:
+1. Open VS Code Keyboard Shortcuts (`Cmd+K Cmd+S`)
+2. Click the "+" icon to add a new keybinding  
+3. Enter the command name and desired key combination
 
 ### Color Options
 
@@ -114,6 +131,7 @@ Access extension settings through VS Code preferences (`Ctrl+,`) and search for 
 
 All commands are available through the Command Palette (`Ctrl+Shift+P`):
 
+### Pattern Management
 - `Pattern Colorization: Add Pattern` - Add a new pattern to highlight
 - `Pattern Colorization: Clear All Patterns` - Remove all patterns
 - `Pattern Colorization: Toggle Extension` - Enable/disable highlighting
@@ -121,6 +139,22 @@ All commands are available through the Command Palette (`Ctrl+Shift+P`):
 - `Pattern Colorization: Export Patterns` - Export patterns to JSON file
 - `Pattern Colorization: Import Patterns` - Import patterns from JSON file
 - `Pattern Colorization: Add from Selection` - Add selected text as pattern
+
+### Navigation Commands
+- `Pattern Colorization: Jump to Next Highlight` - Navigate to next occurrence of any pattern
+- `Pattern Colorization: Jump to Previous Highlight` - Navigate to previous occurrence of any pattern
+- `Pattern Colorization: Jump to Next Selected Pattern Occurrence` - Navigate only between occurrences of the pattern under cursor
+- `Pattern Colorization: Jump to Previous Selected Pattern Occurrence` - Navigate only between occurrences of the pattern under cursor
+
+#### Selected Pattern Navigation
+The selected pattern navigation feature allows you to jump between occurrences of only the pattern that's currently under your cursor:
+
+1. **Smart Pattern Detection**: Place your cursor on any highlighted text
+2. **Pattern-Specific Navigation**: Use the selected pattern navigation commands to jump only between occurrences of that specific pattern
+3. **Fallback Behavior**: If no pattern is detected at the cursor position, the extension will use the first available pattern
+4. **Visual Feedback**: Shows current position (e.g., "Pattern 'error': 3/7") in the status bar
+
+This is particularly useful when working with multiple patterns and you want to focus on reviewing only one specific pattern at a time.
 
 ## Tips and Best Practices
 

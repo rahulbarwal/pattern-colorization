@@ -29,8 +29,8 @@ export class DecorationManager {
     COLOR_PALETTE.forEach((_, index) => {
       const decorationType = vscode.window.createTextEditorDecorationType({
         backgroundColor: new vscode.ThemeColor(`patternColorization.color${index}.background`),
-        borderRadius: '4px',
-        borderWidth: '1px',
+        borderRadius: '3px',
+        borderWidth: '2px',
         borderStyle: 'solid',
         borderColor: new vscode.ThemeColor(`patternColorization.color${index}.border`),
         overviewRulerColor: new vscode.ThemeColor(`patternColorization.color${index}.border`),
@@ -40,19 +40,21 @@ export class DecorationManager {
         fontWeight: '500',
         textDecoration: 'none',
         
+        // Better contrast - remove text shadow that can reduce readability
+        color: new vscode.ThemeColor('editor.foreground'),
+        
+        // Add outline for better visibility on all themes
+        outline: '1px solid',
+        outlineColor: new vscode.ThemeColor(`patternColorization.color${index}.border`),
+        
         // Improved cursor and selection behavior
         cursor: 'default',
         
         // Better integration with editor features
         rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
         
-        // Hover information for accessibility
-        after: {
-          contentText: '',
-          color: new vscode.ThemeColor('editorCodeLens.foreground'),
-          fontStyle: 'italic',
-          margin: '0 0 0 4px'
-        }
+        // Enhanced for better theme compatibility
+        isWholeLine: false
       });
 
       this.decorationTypes[index] = decorationType;
@@ -130,10 +132,8 @@ export class DecorationManager {
     
     if (this.isEnabled) {
       this.updateAllEditors();
-      vscode.window.showInformationMessage('Pattern highlighting enabled');
     } else {
       this.clearAllDecorations();
-      vscode.window.showInformationMessage('Pattern highlighting disabled');
     }
 
     // Update configuration

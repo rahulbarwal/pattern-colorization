@@ -91,14 +91,65 @@
         "title": "Show Statistics",
         "category": "Pattern Colorization",
         "icon": "$(graph)"
+      },
+      {
+        "command": "patternColorization.jumpToNext",
+        "title": "Jump to Next Highlight",
+        "category": "Pattern Colorization",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "patternColorization.jumpToPrevious",
+        "title": "Jump to Previous Highlight",
+        "category": "Pattern Colorization",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "patternColorization.jumpToNextSelectedPattern",
+        "title": "Jump to Next Selected Pattern Occurrence",
+        "category": "Pattern Colorization",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "patternColorization.jumpToPreviousSelectedPattern",
+        "title": "Jump to Previous Selected Pattern Occurrence",
+        "category": "Pattern Colorization",
+        "icon": "$(arrow-left)"
+      },
+      {
+        "command": "patternColorization.changePatternColor",
+        "title": "Change Pattern Color",
+        "category": "Pattern Colorization",
+        "icon": "$(color-mode)"
+      },
+      {
+        "command": "patternColorization.completeInlineAdd",
+        "title": "Complete Inline Add",
+        "category": "Pattern Colorization",
+        "enablement": "false"
+      },
+      {
+        "command": "patternColorization.selectPatternColor",
+        "title": "Select Pattern Color",
+        "category": "Pattern Colorization",
+        "enablement": "false"
       }
     ],
     "views": {
-      "explorer": [
+      "patternColorization": [
         {
           "id": "patternColorizationView",
-          "name": "Pattern Colorization",
+          "name": "Patterns",
           "when": "true"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "patternColorization",
+          "title": "Pattern Colorization",
+          "icon": "$(symbol-color)"
         }
       ]
     },
@@ -150,6 +201,11 @@
           "command": "patternColorization.deletePattern",
           "when": "view == patternColorizationView && viewItem == patternItem",
           "group": "1_modification@2"
+        },
+        {
+          "command": "patternColorization.changePatternColor",
+          "when": "view == patternColorizationView && viewItem == patternItem",
+          "group": "2_color@1"
         }
       ],
       "editor/context": [
@@ -195,8 +251,8 @@
         "id": "patternColorization.color0.background",
         "description": "Background color for pattern 0 (Soft Blue)",
         "defaults": {
-          "dark": "#1E3A8A80",
-          "light": "#E3F2FD",
+          "dark": "#1E3A8A60",
+          "light": "#E3F2FD88",
           "highContrast": "#0066CC"
         }
       },
@@ -205,7 +261,7 @@
         "description": "Border color for pattern 0 (Soft Blue)",
         "defaults": {
           "dark": "#1E3A8A",
-          "light": "#BBDEFB",
+          "light": "#2196F3",
           "highContrast": "#0066CC"
         }
       },
@@ -213,8 +269,8 @@
         "id": "patternColorization.color1.background",
         "description": "Background color for pattern 1 (Soft Green)",
         "defaults": {
-          "dark": "#16653480",
-          "light": "#E8F5E8",
+          "dark": "#16653460",
+          "light": "#E8F5E888",
           "highContrast": "#00AA00"
         }
       },
@@ -223,7 +279,7 @@
         "description": "Border color for pattern 1 (Soft Green)",
         "defaults": {
           "dark": "#166534",
-          "light": "#C8E6C9",
+          "light": "#4CAF50",
           "highContrast": "#00AA00"
         }
       },
@@ -231,8 +287,8 @@
         "id": "patternColorization.color2.background",
         "description": "Background color for pattern 2 (Soft Yellow)",
         "defaults": {
-          "dark": "#CA8A0480",
-          "light": "#FFF9C4",
+          "dark": "#CA8A0460",
+          "light": "#FFF9C488",
           "highContrast": "#FFCC00"
         }
       },
@@ -241,7 +297,7 @@
         "description": "Border color for pattern 2 (Soft Yellow)",
         "defaults": {
           "dark": "#CA8A04",
-          "light": "#F0F4C3",
+          "light": "#FFC107",
           "highContrast": "#FFCC00"
         }
       },
@@ -249,8 +305,8 @@
         "id": "patternColorization.color3.background",
         "description": "Background color for pattern 3 (Soft Orange)",
         "defaults": {
-          "dark": "#C2410C80",
-          "light": "#FFE0B2",
+          "dark": "#C2410C60",
+          "light": "#FFE0B288",
           "highContrast": "#FF8800"
         }
       },
@@ -259,7 +315,7 @@
         "description": "Border color for pattern 3 (Soft Orange)",
         "defaults": {
           "dark": "#C2410C",
-          "light": "#FFCC02",
+          "light": "#FF9800",
           "highContrast": "#FF8800"
         }
       },
@@ -267,8 +323,8 @@
         "id": "patternColorization.color4.background",
         "description": "Background color for pattern 4 (Soft Purple)",
         "defaults": {
-          "dark": "#7C3AED80",
-          "light": "#F3E5F5",
+          "dark": "#7C3AED60",
+          "light": "#F3E5F588",
           "highContrast": "#AA44FF"
         }
       },
@@ -277,7 +333,7 @@
         "description": "Border color for pattern 4 (Soft Purple)",
         "defaults": {
           "dark": "#7C3AED",
-          "light": "#E1BEE7",
+          "light": "#9C27B0",
           "highContrast": "#AA44FF"
         }
       },
@@ -285,8 +341,8 @@
         "id": "patternColorization.color5.background",
         "description": "Background color for pattern 5 (Soft Pink)",
         "defaults": {
-          "dark": "#BE185D80",
-          "light": "#FCE4EC",
+          "dark": "#BE185D60",
+          "light": "#FCE4EC88",
           "highContrast": "#FF4488"
         }
       },
@@ -295,7 +351,7 @@
         "description": "Border color for pattern 5 (Soft Pink)",
         "defaults": {
           "dark": "#BE185D",
-          "light": "#F8BBD9",
+          "light": "#E91E63",
           "highContrast": "#FF4488"
         }
       },
@@ -303,8 +359,8 @@
         "id": "patternColorization.color6.background",
         "description": "Background color for pattern 6 (Soft Teal)",
         "defaults": {
-          "dark": "#0F766E80",
-          "light": "#E0F2F1",
+          "dark": "#0F766E60",
+          "light": "#E0F2F188",
           "highContrast": "#00AAAA"
         }
       },
@@ -313,7 +369,7 @@
         "description": "Border color for pattern 6 (Soft Teal)",
         "defaults": {
           "dark": "#0F766E",
-          "light": "#B2DFDB",
+          "light": "#009688",
           "highContrast": "#00AAAA"
         }
       },
@@ -321,8 +377,8 @@
         "id": "patternColorization.color7.background",
         "description": "Background color for pattern 7 (Soft Gray)",
         "defaults": {
-          "dark": "#37415180",
-          "light": "#F5F5F5",
+          "dark": "#37415160",
+          "light": "#F5F5F588",
           "highContrast": "#888888"
         }
       },
@@ -331,29 +387,23 @@
         "description": "Border color for pattern 7 (Soft Gray)",
         "defaults": {
           "dark": "#374151",
-          "light": "#E0E0E0",
+          "light": "#757575",
           "highContrast": "#888888"
         }
       }
     ],
     "keybindings": [
       {
-        "command": "patternColorization.addPattern",
-        "key": "ctrl+alt+p",
-        "mac": "cmd+alt+p",
-        "when": "true"
+        "command": "patternColorization.jumpToNext",
+        "key": "f3",
+        "mac": "cmd+g",
+        "when": "editorTextFocus"
       },
       {
-        "command": "patternColorization.addFromSelection",
-        "key": "ctrl+alt+a",
-        "mac": "cmd+alt+a",
-        "when": "editorHasSelection"
-      },
-      {
-        "command": "patternColorization.toggleHighlighting",
-        "key": "ctrl+alt+t",
-        "mac": "cmd+alt+t",
-        "when": "true"
+        "command": "patternColorization.jumpToPrevious",
+        "key": "shift+f3",
+        "mac": "cmd+shift+g",
+        "when": "editorTextFocus"
       }
     ]
   },

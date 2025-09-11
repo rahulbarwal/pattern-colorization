@@ -46,7 +46,6 @@ export class PatternManager {
    */
   public async addPattern(text: string, description?: string): Promise<Pattern | null> {
     if (this.patterns.length >= MAX_PATTERNS) {
-      vscode.window.showWarningMessage(`Maximum of ${MAX_PATTERNS} patterns allowed`);
       return null;
     }
 
@@ -61,7 +60,6 @@ export class PatternManager {
     );
     
     if (existingPattern) {
-      vscode.window.showWarningMessage(`Pattern "${text}" already exists`);
       return null;
     }
 
@@ -154,22 +152,13 @@ export class PatternManager {
       return;
     }
 
-    const result = await vscode.window.showWarningMessage(
-      'Are you sure you want to clear all patterns?',
-      { modal: true },
-      'Yes',
-      'No'
-    );
+    this.patterns = [];
+    this.lastColorIndex = 0;
+    await this.saveState();
 
-    if (result === 'Yes') {
-      this.patterns = [];
-      this.lastColorIndex = 0;
-      await this.saveState();
-
-      this._onDidChangePatterns.fire({
-        type: PatternEventType.CLEARED
-      });
-    }
+    this._onDidChangePatterns.fire({
+      type: PatternEventType.CLEARED
+    });
   }
 
   /**
@@ -222,7 +211,7 @@ export class PatternManager {
         patterns: this.patterns
       });
 
-      vscode.window.showInformationMessage(`Imported ${validPatterns.length} patterns`);
+      // Patterns imported silently
     } catch (error) {
       vscode.window.showErrorMessage('Failed to import patterns: Invalid format');
     }

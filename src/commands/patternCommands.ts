@@ -3,6 +3,7 @@ import { PatternManager } from '../services/patternManager';
 import { DecorationManager } from '../services/decorationManager';
 import { PatternTreeProvider } from '../views/patternTreeProvider';
 import { MAX_PATTERNS } from '../constants/colors';
+import { Pattern, PatternConfig } from '../models/pattern';
 
 /**
  * Registers and handles all pattern-related commands
@@ -32,7 +33,14 @@ export class PatternCommands {
       vscode.commands.registerCommand('patternColorization.addFromSelection', () => this.addPatternFromSelection()),
       vscode.commands.registerCommand('patternColorization.importPatterns', () => this.importPatterns()),
       vscode.commands.registerCommand('patternColorization.exportPatterns', () => this.exportPatterns()),
-      vscode.commands.registerCommand('patternColorization.showStats', () => this.showStats())
+      vscode.commands.registerCommand('patternColorization.showStats', () => this.showStats()),
+      vscode.commands.registerCommand('patternColorization.jumpToNext', () => this.jumpToNextHighlight()),
+      vscode.commands.registerCommand('patternColorization.jumpToPrevious', () => this.jumpToPreviousHighlight()),
+      vscode.commands.registerCommand('patternColorization.jumpToNextSelectedPattern', () => this.jumpToNextSelectedPatternOccurrence()),
+      vscode.commands.registerCommand('patternColorization.jumpToPreviousSelectedPattern', () => this.jumpToPreviousSelectedPatternOccurrence()),
+      vscode.commands.registerCommand('patternColorization.completeInlineAdd', () => this.completeInlineAdd()),
+      vscode.commands.registerCommand('patternColorization.selectPatternColor', (patternId) => this.selectPatternColor(patternId)),
+      vscode.commands.registerCommand('patternColorization.changePatternColor', (item) => this.changePatternColor(item))
     ];
 
     commands.forEach(command => {
@@ -41,112 +49,59 @@ export class PatternCommands {
   }
 
   /**
-   * Add a new pattern
+   * Add a new pattern with inline editing support
    */
   private async addPattern(): Promise<void> {
     try {
       const patterns = this.patternManager.getPatterns();
       if (patterns.length >= MAX_PATTERNS) {
-        vscode.window.showWarningMessage(
-          `Maximum of ${MAX_PATTERNS} patterns allowed. Consider removing unused patterns first.`,
-          'Manage Patterns'
-        ).then(selection => {
-          if (selection === 'Manage Patterns') {
-            vscode.commands.executeCommand('patternColorizationView.focus');
-          }
-        });
         return;
       }
 
-      const patternText = await vscode.window.showInputBox({
-        title: 'Add New Pattern',
-        prompt: 'Enter the text pattern you want to highlight',
-        placeHolder: 'e.g., TODO, FIXME, BUG, or any word/phrase',
-        ignoreFocusOut: true,
-        validateInput: (value) => {
-          if (!value || !value.trim()) {
-            return '⚠️ Pattern text cannot be empty';
-          }
-          
-          if (value.trim().length < 2) {
-            return '⚠️ Pattern must be at least 2 characters long';
-          }
-          
-          const existing = patterns.find(p => 
-            p.text.toLowerCase() === value.toLowerCase()
-          );
-          if (existing) {
-            return `⚠️ Pattern "${value}" already exists`;
-          }
-          
-          if (value.length > 100) {
-            return '⚠️ Pattern text too long (max 100 characters)';
-          }
-          
-          return null;
-        }
-      });
-
-      if (!patternText) {
-        return; // User cancelled
-      }
-
-      const description = await vscode.window.showInputBox({
-        title: 'Pattern Description (Optional)',
-        prompt: `Add a description for "${patternText}" to help remember its purpose`,
-        placeHolder: 'e.g., Important tasks to complete, Error markers, Debug points',
-        ignoreFocusOut: true,
-        validateInput: (value) => {
-          if (value && value.length > 200) {
-            return '⚠️ Description too long (max 200 characters)';
-          }
-          return null;
-        }
-      });
-
-      // Show progress for the operation
-      await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: 'Creating pattern...',
-        cancellable: false
-      }, async (progress) => {
-        progress.report({ increment: 50, message: 'Adding pattern to collection' });
-        const pattern = await this.patternManager.addPattern(patternText, description);
-        
-        if (pattern) {
-          progress.report({ increment: 50, message: 'Applying highlights' });
-          // Small delay for visual feedback
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-        
-        return pattern;
-      }).then(pattern => {
-        if (pattern) {
-          const colorName = this.patternManager.getColorForPattern(pattern).name;
-          vscode.window.showInformationMessage(
-            `✅ Pattern "${patternText}" created with ${colorName} highlighting!`,
-            'View Patterns', 'Add Another'
-          ).then(selection => {
-            if (selection === 'View Patterns') {
-              vscode.commands.executeCommand('patternColorizationView.focus');
-            } else if (selection === 'Add Another') {
-              this.addPattern();
-            }
-          });
-        }
-      });
+      // Start true inline editing in the tree view
+      this.treeProvider.startInlineAdd();
       
     } catch (error) {
-      vscode.window.showErrorMessage(
-        `❌ Failed to add pattern: ${error}`,
-        'Try Again', 'Report Issue'
-      ).then(selection => {
-        if (selection === 'Try Again') {
-          this.addPattern();
-        } else if (selection === 'Report Issue') {
-          vscode.env.openExternal(vscode.Uri.parse('https://github.com/your-repo/issues'));
-        }
-      });
+      console.error('Failed to start inline pattern addition:', error);
+    }
+  }
+
+  /**
+   * Create pattern from inline input
+   */
+  public async createPatternFromInline(text: string, description?: string): Promise<void> {
+    try {
+      const patterns = this.patternManager.getPatterns();
+      if (patterns.length >= MAX_PATTERNS) {
+        return;
+      }
+
+      if (!text || !text.trim()) {
+        return;
+      }
+
+      const trimmedText = text.trim();
+      if (trimmedText.length < 2) {
+        return;
+      }
+
+      // Check for duplicates
+      const existing = patterns.find(p => 
+        p.text.toLowerCase() === trimmedText.toLowerCase()
+      );
+      if (existing) {
+        return;
+      }
+
+      if (trimmedText.length > 100) {
+        return;
+      }
+
+      // Create the pattern silently
+      await this.patternManager.addPattern(trimmedText, description);
+      
+    } catch (error) {
+      console.error('Failed to create pattern from inline:', error);
     }
   }
 
@@ -288,21 +243,8 @@ export class PatternCommands {
         const pattern = await this.patternManager.addPattern(selectedText, description);
         
         if (pattern) {
-          progress.report({ increment: 40, message: 'Applying highlighting' });
-          await new Promise(resolve => setTimeout(resolve, 200));
-          progress.report({ increment: 30, message: 'Complete!' });
-          
-          const colorName = this.patternManager.getColorForPattern(pattern).name;
-          vscode.window.showInformationMessage(
-            `✅ Pattern "${selectedText}" created with ${colorName} highlighting!`,
-            'View All Patterns', 'Add Another'
-          ).then(selection => {
-            if (selection === 'View All Patterns') {
-              vscode.commands.executeCommand('patternColorizationView.focus');
-            } else if (selection === 'Add Another') {
-              this.addPattern();
-            }
-          });
+          progress.report({ increment: 70, message: 'Complete!' });
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
         
         return pattern;
@@ -369,10 +311,8 @@ export class PatternCommands {
       );
 
       if (confirmed === 'Delete') {
-        const success = await this.patternManager.removePattern(patternId);
-        if (success) {
-          vscode.window.showInformationMessage(`Pattern "${pattern.text}" deleted`);
-        }
+        await this.patternManager.removePattern(patternId);
+        // Pattern deleted silently
       }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to delete pattern: ${error}`);
@@ -439,17 +379,7 @@ export class PatternCommands {
         await new Promise(resolve => setTimeout(resolve, 200));
       });
       
-      vscode.window.showInformationMessage(
-        `✅ All ${patterns.length} patterns cleared successfully!`,
-        'Add New Pattern',
-        'Import Patterns'
-      ).then(selection => {
-        if (selection === 'Add New Pattern') {
-          this.addPattern();
-        } else if (selection === 'Import Patterns') {
-          this.importPatterns();
-        }
-      });
+      // Patterns cleared silently
       
     } catch (error) {
       vscode.window.showErrorMessage(
@@ -468,8 +398,6 @@ export class PatternCommands {
    */
   private async refreshPatterns(): Promise<void> {
     try {
-      const patterns = this.patternManager.getPatterns();
-      const enabledCount = patterns.filter(p => p.enabled).length;
       
       // Show progress for visual feedback
       await vscode.window.withProgress({
@@ -488,27 +416,7 @@ export class PatternCommands {
         await new Promise(resolve => setTimeout(resolve, 300));
       });
       
-      // Show informative success message
-      if (patterns.length === 0) {
-        vscode.window.showInformationMessage(
-          '🔄 Patterns refreshed - No patterns defined',
-          'Add Pattern'
-        ).then(selection => {
-          if (selection === 'Add Pattern') {
-            this.addPattern();
-          }
-        });
-      } else {
-        const activeEditors = vscode.window.visibleTextEditors.length;
-        vscode.window.showInformationMessage(
-          `✅ Patterns refreshed! ${enabledCount}/${patterns.length} patterns active across ${activeEditors} editor${activeEditors !== 1 ? 's' : ''}`,
-          'View Statistics'
-        ).then(selection => {
-          if (selection === 'View Statistics') {
-            this.showStats();
-          }
-        });
-      }
+      // Patterns refreshed silently
     } catch (error) {
       vscode.window.showErrorMessage(
         `❌ Failed to refresh patterns: ${error}`,
@@ -542,25 +450,7 @@ export class PatternCommands {
       // Clear status bar message
       statusBarMessage.dispose();
       
-      // Show confirmation with additional actions
-      const message = newState 
-        ? '✅ Pattern highlighting enabled for all files!' 
-        : '🚫 Pattern highlighting disabled';
-        
-      const action1 = newState ? 'View Patterns' : 'Re-enable';
-      const action2 = 'Settings';
-      
-      vscode.window.showInformationMessage(message, action1, action2).then(selection => {
-        if (selection === 'View Patterns' || selection === 'Re-enable') {
-          if (selection === 'Re-enable') {
-            this.toggleHighlighting();
-          } else {
-            vscode.commands.executeCommand('patternColorizationView.focus');
-          }
-        } else if (selection === 'Settings') {
-          vscode.commands.executeCommand('workbench.action.openSettings', 'patternColorization');
-        }
-      });
+      // Highlighting toggled silently
       
     } catch (error) {
       vscode.window.showErrorMessage(
@@ -591,7 +481,7 @@ export class PatternCommands {
   }
 
   /**
-   * Edit a pattern
+   * Edit a pattern using inline editing
    */
   private async editPattern(item?: any): Promise<void> {
     try {
@@ -603,7 +493,6 @@ export class PatternCommands {
         // Show quick pick to select pattern
         const patterns = this.patternManager.getPatterns();
         if (patterns.length === 0) {
-          vscode.window.showInformationMessage('No patterns to edit');
           return;
         }
 
@@ -626,58 +515,14 @@ export class PatternCommands {
 
       const pattern = this.patternManager.getPatterns().find(p => p.id === patternId);
       if (!pattern) {
-        vscode.window.showErrorMessage('Pattern not found');
         return;
       }
 
-      // Edit pattern text
-      const newText = await vscode.window.showInputBox({
-        prompt: 'Edit pattern text',
-        value: pattern.text,
-        validateInput: (value) => {
-          if (!value || !value.trim()) {
-            return 'Pattern text cannot be empty';
-          }
-          
-          if (value.length > 100) {
-            return 'Pattern text too long (max 100 characters)';
-          }
-          
-          const existing = this.patternManager.getPatterns().find(p => 
-            p.id !== patternId && p.text.toLowerCase() === value.toLowerCase()
-          );
-          if (existing) {
-            return `Pattern "${value}" already exists`;
-          }
-          
-          return null;
-        }
-      });
-
-      if (newText === undefined) {
-        return;
-      }
-
-      // Edit description
-      const newDescription = await vscode.window.showInputBox({
-        prompt: 'Edit pattern description (optional)',
-        value: pattern.description || ''
-      });
-
-      if (newDescription === undefined) {
-        return;
-      }
-
-      const success = await this.patternManager.updatePattern(patternId, {
-        text: newText.trim(),
-        description: newDescription.trim() || undefined
-      });
-
-      if (success) {
-        vscode.window.showInformationMessage(`Pattern updated successfully`);
-      }
+      // Use inline editing for existing patterns
+      this.treeProvider.startInlineEdit(patternId);
+      
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to edit pattern: ${error}`);
+      console.error('Failed to start inline pattern editing:', error);
     }
   }
 
@@ -744,7 +589,7 @@ export class PatternCommands {
       const buffer = Buffer.from(jsonString, 'utf8');
 
       await vscode.workspace.fs.writeFile(fileUri, buffer);
-      vscode.window.showInformationMessage(`Patterns exported to ${fileUri.fsPath}`);
+      // Patterns exported silently
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to export patterns: ${error}`);
     }
@@ -1180,5 +1025,398 @@ export class PatternCommands {
         </script>
     </body>
     </html>`;
+  }
+
+  /**
+   * Jump to the next highlight in the active editor
+   */
+  private jumpToNextHighlight(): void {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return;
+    }
+
+    const highlights = this.getHighlightRanges(editor);
+    if (highlights.length === 0) {
+      return;
+    }
+
+    const currentPosition = editor.selection.active;
+    let nextHighlight: vscode.Range | undefined;
+
+    // Find the next highlight after the current cursor position
+    for (const highlight of highlights) {
+      if (highlight.start.isAfter(currentPosition)) {
+        nextHighlight = highlight;
+        break;
+      }
+    }
+
+    // If no next highlight found, wrap to the first one
+    if (!nextHighlight && highlights.length > 0) {
+      nextHighlight = highlights[0];
+    }
+
+    if (nextHighlight) {
+      this.revealRange(editor, nextHighlight);
+    }
+  }
+
+  /**
+   * Jump to the previous highlight in the active editor
+   */
+  private jumpToPreviousHighlight(): void {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return;
+    }
+
+    const highlights = this.getHighlightRanges(editor);
+    if (highlights.length === 0) {
+      return;
+    }
+
+    const currentPosition = editor.selection.active;
+    let previousHighlight: vscode.Range | undefined;
+
+    // Find the previous highlight before the current cursor position (search backwards)
+    for (let i = highlights.length - 1; i >= 0; i--) {
+      if (highlights[i].end.isBefore(currentPosition)) {
+        previousHighlight = highlights[i];
+        break;
+      }
+    }
+
+    // If no previous highlight found, wrap to the last one
+    if (!previousHighlight && highlights.length > 0) {
+      previousHighlight = highlights[highlights.length - 1];
+    }
+
+    if (previousHighlight) {
+      this.revealRange(editor, previousHighlight);
+    }
+  }
+
+  /**
+   * Get all highlight ranges in the active editor
+   */
+  private getHighlightRanges(editor: vscode.TextEditor): vscode.Range[] {
+    const patterns = this.patternManager.getEnabledPatterns();
+    const config = this.patternManager.getConfig();
+    const ranges: vscode.Range[] = [];
+
+    if (!config.enabled) {
+      return ranges;
+    }
+
+    patterns.forEach(pattern => {
+      const patternRanges = this.findPatternRanges(editor.document, pattern, config);
+      ranges.push(...patternRanges);
+    });
+
+    // Sort ranges by position in the document
+    return ranges.sort((a, b) => {
+      if (a.start.line !== b.start.line) {
+        return a.start.line - b.start.line;
+      }
+      return a.start.character - b.start.character;
+    });
+  }
+
+  /**
+   * Find all ranges for a pattern in a document
+   */
+  private findPatternRanges(
+    document: vscode.TextDocument,
+    pattern: Pattern,
+    config: PatternConfig
+  ): vscode.Range[] {
+    const ranges: vscode.Range[] = [];
+    const text = document.getText();
+    const searchText = config.caseSensitive ? pattern.text : pattern.text.toLowerCase();
+    const documentText = config.caseSensitive ? text : text.toLowerCase();
+
+    let index = 0;
+    while (true) {
+      let foundIndex = documentText.indexOf(searchText, index);
+      if (foundIndex === -1) {
+        break;
+      }
+
+      // Check whole word matching if enabled
+      if (config.wholeWord) {
+        const beforeChar = foundIndex > 0 ? documentText[foundIndex - 1] : ' ';
+        const afterChar = foundIndex + searchText.length < documentText.length 
+          ? documentText[foundIndex + searchText.length] 
+          : ' ';
+
+        if (this.isWordCharacter(beforeChar) || this.isWordCharacter(afterChar)) {
+          index = foundIndex + 1;
+          continue;
+        }
+      }
+
+      const startPos = document.positionAt(foundIndex);
+      const endPos = document.positionAt(foundIndex + searchText.length);
+      const range = new vscode.Range(startPos, endPos);
+
+      ranges.push(range);
+      index = foundIndex + 1;
+    }
+
+    return ranges;
+  }
+
+  /**
+   * Check if a character is a word character
+   */
+  private isWordCharacter(char: string): boolean {
+    return /\w/.test(char);
+  }
+
+  /**
+   * Reveal a range in the editor and select it
+   */
+  private revealRange(editor: vscode.TextEditor, range: vscode.Range): void {
+    // Move cursor to the range and select it
+    editor.selection = new vscode.Selection(range.start, range.end);
+    
+    // Reveal the range in the editor
+    editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+  }
+
+  /**
+   * Get the pattern at the current cursor position
+   */
+  private getPatternAtCursor(editor: vscode.TextEditor): any | null {
+    const position = editor.selection.active;
+    const patterns = this.patternManager.getEnabledPatterns();
+    const config = this.patternManager.getConfig();
+
+    if (!config.enabled || patterns.length === 0) {
+      return null;
+    }
+
+    // Check each pattern to see if cursor is within one of its ranges
+    for (const pattern of patterns) {
+      const ranges = this.findPatternRanges(editor.document, pattern, config);
+      for (const range of ranges) {
+        if (range.contains(position)) {
+          return pattern;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Jump to the next occurrence of the selected/focused pattern only
+   */
+  private jumpToNextSelectedPatternOccurrence(): void {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showInformationMessage('No active editor found');
+      return;
+    }
+
+    // Detect which pattern is under the cursor
+    const selectedPattern = this.getPatternAtCursor(editor);
+    
+    if (!selectedPattern) {
+      // Fallback: use the first available pattern or show message
+      const enabledPatterns = this.patternManager.getEnabledPatterns();
+      if (enabledPatterns.length === 0) {
+        vscode.window.showInformationMessage('No patterns available for navigation');
+        return;
+      }
+      
+      // Use the first pattern as fallback
+      const fallbackPattern = enabledPatterns[0];
+      vscode.window.showInformationMessage(`No pattern detected at cursor. Using pattern: "${fallbackPattern.text}"`);
+      this.navigateToNextPatternOccurrence(editor, fallbackPattern);
+      return;
+    }
+
+    this.navigateToNextPatternOccurrence(editor, selectedPattern);
+  }
+
+  /**
+   * Jump to the previous occurrence of the selected/focused pattern only
+   */
+  private jumpToPreviousSelectedPatternOccurrence(): void {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showInformationMessage('No active editor found');
+      return;
+    }
+
+    // Detect which pattern is under the cursor
+    const selectedPattern = this.getPatternAtCursor(editor);
+    
+    if (!selectedPattern) {
+      // Fallback: use the first available pattern or show message
+      const enabledPatterns = this.patternManager.getEnabledPatterns();
+      if (enabledPatterns.length === 0) {
+        vscode.window.showInformationMessage('No patterns available for navigation');
+        return;
+      }
+      
+      // Use the first pattern as fallback
+      const fallbackPattern = enabledPatterns[0];
+      vscode.window.showInformationMessage(`No pattern detected at cursor. Using pattern: "${fallbackPattern.text}"`);
+      this.navigateToPreviousPatternOccurrence(editor, fallbackPattern);
+      return;
+    }
+
+    this.navigateToPreviousPatternOccurrence(editor, selectedPattern);
+  }
+
+  /**
+   * Navigate to the next occurrence of a specific pattern
+   */
+  private navigateToNextPatternOccurrence(editor: vscode.TextEditor, pattern: any): void {
+    const config = this.patternManager.getConfig();
+    const ranges = this.findPatternRanges(editor.document, pattern, config);
+    
+    if (ranges.length === 0) {
+      vscode.window.showInformationMessage(`No occurrences found for pattern: "${pattern.text}"`);
+      return;
+    }
+
+    const currentPosition = editor.selection.active;
+    let nextRange: vscode.Range | undefined;
+
+    // Find the next occurrence after the current cursor position
+    for (const range of ranges) {
+      if (range.start.isAfter(currentPosition)) {
+        nextRange = range;
+        break;
+      }
+    }
+
+    // If no next occurrence found, wrap to the first one
+    if (!nextRange && ranges.length > 0) {
+      nextRange = ranges[0];
+      vscode.window.showInformationMessage(`Wrapped to first occurrence of "${pattern.text}"`);
+    }
+
+    if (nextRange) {
+      this.revealRange(editor, nextRange);
+      
+      // Show status message
+      const currentIndex = ranges.findIndex(r => r.isEqual(nextRange!)) + 1;
+      vscode.window.setStatusBarMessage(
+        `Pattern "${pattern.text}": ${currentIndex}/${ranges.length}`,
+        3000
+      );
+    }
+  }
+
+  /**
+   * Navigate to the previous occurrence of a specific pattern
+   */
+  private navigateToPreviousPatternOccurrence(editor: vscode.TextEditor, pattern: any): void {
+    const config = this.patternManager.getConfig();
+    const ranges = this.findPatternRanges(editor.document, pattern, config);
+    
+    if (ranges.length === 0) {
+      vscode.window.showInformationMessage(`No occurrences found for pattern: "${pattern.text}"`);
+      return;
+    }
+
+    const currentPosition = editor.selection.active;
+    let previousRange: vscode.Range | undefined;
+
+    // Find the previous occurrence before the current cursor position (search backwards)
+    for (let i = ranges.length - 1; i >= 0; i--) {
+      if (ranges[i].end.isBefore(currentPosition)) {
+        previousRange = ranges[i];
+        break;
+      }
+    }
+
+    // If no previous occurrence found, wrap to the last one
+    if (!previousRange && ranges.length > 0) {
+      previousRange = ranges[ranges.length - 1];
+      vscode.window.showInformationMessage(`Wrapped to last occurrence of "${pattern.text}"`);
+    }
+
+    if (previousRange) {
+      this.revealRange(editor, previousRange);
+      
+      // Show status message
+      const currentIndex = ranges.findIndex(r => r.isEqual(previousRange!)) + 1;
+      vscode.window.setStatusBarMessage(
+        `Pattern "${pattern.text}": ${currentIndex}/${ranges.length}`,
+        3000
+      );
+    }
+  }
+
+  /**
+   * Complete inline pattern addition
+   */
+  private async completeInlineAdd(): Promise<void> {
+    try {
+      await this.treeProvider.completeInlineAdd();
+    } catch (error) {
+      console.error('Failed to complete inline add:', error);
+      vscode.window.showErrorMessage('Failed to add pattern');
+    }
+  }
+
+  /**
+   * Select color for a pattern
+   */
+  private async selectPatternColor(patternId: string): Promise<void> {
+    try {
+      await this.treeProvider.showColorSelection(patternId);
+    } catch (error) {
+      console.error('Failed to select pattern color:', error);
+      vscode.window.showErrorMessage('Failed to change pattern color');
+    }
+  }
+
+  /**
+   * Change pattern color from context menu
+   */
+  private async changePatternColor(item?: any): Promise<void> {
+    try {
+      let patternId: string;
+
+      if (item && item.id) {
+        patternId = item.id;
+      } else {
+        // Show quick pick to select pattern
+        const patterns = this.patternManager.getPatterns();
+        if (patterns.length === 0) {
+          vscode.window.showInformationMessage('No patterns to change color for');
+          return;
+        }
+
+        const items = patterns.map(pattern => ({
+          label: `${pattern.text}`,
+          description: `Current color: ${this.patternManager.getColorForPattern(pattern).name}`,
+          id: pattern.id
+        }));
+
+        const selected = await vscode.window.showQuickPick(items, {
+          placeHolder: 'Select pattern to change color'
+        });
+
+        if (!selected) {
+          return;
+        }
+
+        patternId = selected.id;
+      }
+
+      await this.treeProvider.showColorSelection(patternId);
+      
+    } catch (error) {
+      console.error('Failed to change pattern color:', error);
+      vscode.window.showErrorMessage('Failed to change pattern color');
+    }
   }
 }
