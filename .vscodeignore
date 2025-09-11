@@ -1,0 +1,36 @@
+# Source files
+src/**
+.vscode/**
+.vscode-test/**
+
+# TypeScript configuration
+tsconfig.json
+
+# Build files
+.gitignore
+.vscodeignore
+
+# Development dependencies
+node_modules/**
+
+# Test files  
+test/**
+
+# Documentation
+docs/**
+*.md
+!README.md
+
+# IDE files
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Coverage
+coverage/**

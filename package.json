@@ -1,0 +1,370 @@
+{
+  "name": "pattern-colorization",
+  "displayName": "Pattern Colorization",
+  "description": "Highlight up to 8 words/patterns with different background colors",
+  "version": "1.0.0",
+  "publisher": "your-publisher",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Themes"
+  ],
+  "keywords": [
+    "highlight",
+    "pattern",
+    "colorization",
+    "search",
+    "words"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "patternColorization.addPattern",
+        "title": "Add Pattern",
+        "category": "Pattern Colorization",
+        "icon": "$(add)",
+        "enablement": "true"
+      },
+      {
+        "command": "patternColorization.addFromSelection",
+        "title": "Add Pattern from Selection",
+        "category": "Pattern Colorization",
+        "icon": "$(symbol-text)",
+        "enablement": "editorHasSelection"
+      },
+      {
+        "command": "patternColorization.deletePattern",
+        "title": "Delete Pattern",
+        "category": "Pattern Colorization",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "patternColorization.editPattern",
+        "title": "Edit Pattern",
+        "category": "Pattern Colorization",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "patternColorization.togglePattern",
+        "title": "Toggle Pattern",
+        "category": "Pattern Colorization",
+        "icon": "$(check)"
+      },
+      {
+        "command": "patternColorization.clearPatterns",
+        "title": "Clear All Patterns",
+        "category": "Pattern Colorization",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "patternColorization.refreshPatterns",
+        "title": "Refresh Patterns",
+        "category": "Pattern Colorization",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "patternColorization.toggleHighlighting",
+        "title": "Toggle Highlighting",
+        "category": "Pattern Colorization",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "patternColorization.importPatterns",
+        "title": "Import Patterns",
+        "category": "Pattern Colorization",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "patternColorization.exportPatterns",
+        "title": "Export Patterns",
+        "category": "Pattern Colorization",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "patternColorization.showStats",
+        "title": "Show Statistics",
+        "category": "Pattern Colorization",
+        "icon": "$(graph)"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "patternColorizationView",
+          "name": "Pattern Colorization",
+          "when": "true"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "patternColorization.addPattern",
+          "when": "view == patternColorizationView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "patternColorization.toggleHighlighting",
+          "when": "view == patternColorizationView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "patternColorization.refreshPatterns",
+          "when": "view == patternColorizationView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "patternColorization.clearPatterns",
+          "when": "view == patternColorizationView",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "patternColorization.importPatterns",
+          "when": "view == patternColorizationView",
+          "group": "2_import_export@1"
+        },
+        {
+          "command": "patternColorization.exportPatterns",
+          "when": "view == patternColorizationView",
+          "group": "2_import_export@2"
+        },
+        {
+          "command": "patternColorization.showStats",
+          "when": "view == patternColorizationView",
+          "group": "3_info@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "patternColorization.editPattern",
+          "when": "view == patternColorizationView && viewItem == patternItem",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "patternColorization.deletePattern",
+          "when": "view == patternColorizationView && viewItem == patternItem",
+          "group": "1_modification@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "patternColorization.addFromSelection",
+          "when": "editorHasSelection",
+          "group": "2_patterns@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "patternColorization.addFromSelection",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "patternColorization.togglePattern",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Pattern Colorization",
+      "properties": {
+        "patternColorization.caseSensitive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether pattern matching should be case sensitive"
+        },
+        "patternColorization.wholeWord": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to match whole words only"
+        },
+        "patternColorization.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether pattern highlighting is enabled"
+        }
+      }
+    },
+    "colors": [
+      {
+        "id": "patternColorization.color0.background",
+        "description": "Background color for pattern 0 (Soft Blue)",
+        "defaults": {
+          "dark": "#1E3A8A80",
+          "light": "#E3F2FD",
+          "highContrast": "#0066CC"
+        }
+      },
+      {
+        "id": "patternColorization.color0.border",
+        "description": "Border color for pattern 0 (Soft Blue)",
+        "defaults": {
+          "dark": "#1E3A8A",
+          "light": "#BBDEFB",
+          "highContrast": "#0066CC"
+        }
+      },
+      {
+        "id": "patternColorization.color1.background",
+        "description": "Background color for pattern 1 (Soft Green)",
+        "defaults": {
+          "dark": "#16653480",
+          "light": "#E8F5E8",
+          "highContrast": "#00AA00"
+        }
+      },
+      {
+        "id": "patternColorization.color1.border",
+        "description": "Border color for pattern 1 (Soft Green)",
+        "defaults": {
+          "dark": "#166534",
+          "light": "#C8E6C9",
+          "highContrast": "#00AA00"
+        }
+      },
+      {
+        "id": "patternColorization.color2.background",
+        "description": "Background color for pattern 2 (Soft Yellow)",
+        "defaults": {
+          "dark": "#CA8A0480",
+          "light": "#FFF9C4",
+          "highContrast": "#FFCC00"
+        }
+      },
+      {
+        "id": "patternColorization.color2.border",
+        "description": "Border color for pattern 2 (Soft Yellow)",
+        "defaults": {
+          "dark": "#CA8A04",
+          "light": "#F0F4C3",
+          "highContrast": "#FFCC00"
+        }
+      },
+      {
+        "id": "patternColorization.color3.background",
+        "description": "Background color for pattern 3 (Soft Orange)",
+        "defaults": {
+          "dark": "#C2410C80",
+          "light": "#FFE0B2",
+          "highContrast": "#FF8800"
+        }
+      },
+      {
+        "id": "patternColorization.color3.border",
+        "description": "Border color for pattern 3 (Soft Orange)",
+        "defaults": {
+          "dark": "#C2410C",
+          "light": "#FFCC02",
+          "highContrast": "#FF8800"
+        }
+      },
+      {
+        "id": "patternColorization.color4.background",
+        "description": "Background color for pattern 4 (Soft Purple)",
+        "defaults": {
+          "dark": "#7C3AED80",
+          "light": "#F3E5F5",
+          "highContrast": "#AA44FF"
+        }
+      },
+      {
+        "id": "patternColorization.color4.border",
+        "description": "Border color for pattern 4 (Soft Purple)",
+        "defaults": {
+          "dark": "#7C3AED",
+          "light": "#E1BEE7",
+          "highContrast": "#AA44FF"
+        }
+      },
+      {
+        "id": "patternColorization.color5.background",
+        "description": "Background color for pattern 5 (Soft Pink)",
+        "defaults": {
+          "dark": "#BE185D80",
+          "light": "#FCE4EC",
+          "highContrast": "#FF4488"
+        }
+      },
+      {
+        "id": "patternColorization.color5.border",
+        "description": "Border color for pattern 5 (Soft Pink)",
+        "defaults": {
+          "dark": "#BE185D",
+          "light": "#F8BBD9",
+          "highContrast": "#FF4488"
+        }
+      },
+      {
+        "id": "patternColorization.color6.background",
+        "description": "Background color for pattern 6 (Soft Teal)",
+        "defaults": {
+          "dark": "#0F766E80",
+          "light": "#E0F2F1",
+          "highContrast": "#00AAAA"
+        }
+      },
+      {
+        "id": "patternColorization.color6.border",
+        "description": "Border color for pattern 6 (Soft Teal)",
+        "defaults": {
+          "dark": "#0F766E",
+          "light": "#B2DFDB",
+          "highContrast": "#00AAAA"
+        }
+      },
+      {
+        "id": "patternColorization.color7.background",
+        "description": "Background color for pattern 7 (Soft Gray)",
+        "defaults": {
+          "dark": "#37415180",
+          "light": "#F5F5F5",
+          "highContrast": "#888888"
+        }
+      },
+      {
+        "id": "patternColorization.color7.border",
+        "description": "Border color for pattern 7 (Soft Gray)",
+        "defaults": {
+          "dark": "#374151",
+          "light": "#E0E0E0",
+          "highContrast": "#888888"
+        }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "patternColorization.addPattern",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p",
+        "when": "true"
+      },
+      {
+        "command": "patternColorization.addFromSelection",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "patternColorization.toggleHighlighting",
+        "key": "ctrl+alt+t",
+        "mac": "cmd+alt+t",
+        "when": "true"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.4"
+  }
+}
