@@ -9,9 +9,6 @@ import { COLOR_PALETTE } from '../constants/colors';
 export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<PatternTreeItem | undefined | null | void> = new vscode.EventEmitter<PatternTreeItem | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<PatternTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
-  private isInlineAdding: boolean = false;
-  private inlineEditingPatternId: string | null = null;
-  private colorSelectionPatternId: string | null = null;
 
   constructor(private patternManager: PatternManager) {
     // Listen for pattern changes and refresh the tree
@@ -43,33 +40,21 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     // Set icon with better VS Code integration
     item.iconPath = this.getIconPath(element);
     
-    // Add command for clicking on item
-    if (element.contextValue === 'inlineAddItem') {
-      // Inline add item - show input immediately
-      item.command = {
-        command: 'patternColorization.completeInlineAdd',
-        title: 'Complete Inline Add',
-        arguments: []
-      };
-    } else if (element.contextValue === 'colorPickerItem') {
-      // Color picker item
-      item.command = {
-        command: 'patternColorization.selectPatternColor',
-        title: 'Select Color',
-        arguments: [element.id]
-      };
-    } else if (element.contextValue !== 'emptyItem') {
-      item.command = {
-        command: 'patternColorization.togglePattern',
-        title: 'Toggle Pattern',
-        arguments: [element.id]
-      };
+    // Remove confusing click behavior - no commands on pattern items
+    // Users should use the action icons instead
+    if (element.contextValue === 'emptyItem') {
+      // Empty item shows help text but is not clickable
+      item.command = undefined;
+    } else {
+      // Pattern items are not clickable to avoid confusion
+      // Users must use the action buttons (eye icon to toggle, color icon to change color)
+      item.command = undefined;
     }
 
     // Add accessibility properties
     item.accessibilityInformation = {
       label: this.getAccessibilityLabel(element),
-      role: element.contextValue === 'emptyItem' ? 'text' : 'button'
+      role: element.contextValue === 'emptyItem' ? 'text' : 'listitem'
     };
 
     return item;
@@ -95,36 +80,7 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     const patterns = this.patternManager.getPatterns();
     const config = this.patternManager.getConfig();
     
-    let items: PatternTreeItem[] = [];
-
-    // Add inline adding item if in inline adding mode
-    if (this.isInlineAdding) {
-      items.push({
-        id: 'inline-add',
-        label: '$(edit) Type pattern text here...',
-        description: 'Press Enter to save, Escape to cancel',
-        colorIndex: 0,
-        enabled: true,
-        contextValue: 'inlineAddItem'
-      });
-    }
-
-    // Add color picker item if in color selection mode
-    if (this.colorSelectionPatternId) {
-      const pattern = patterns.find(p => p.id === this.colorSelectionPatternId);
-      if (pattern) {
-        items.push({
-          id: `color-picker-${pattern.id}`,
-          label: `$(color-mode) Choose color for "${pattern.text}"`,
-          description: 'Click to select a different color',
-          colorIndex: pattern.colorIndex,
-          enabled: true,
-          contextValue: 'colorPickerItem'
-        });
-      }
-    }
-    
-    if (patterns.length === 0 && !this.isInlineAdding) {
+    if (patterns.length === 0) {
       return [{
         id: 'empty',
         label: 'No patterns defined',
@@ -145,8 +101,7 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
       })
       .map(pattern => this.createTreeItem(pattern, config.enabled));
 
-    items.push(...patternItems);
-    return items;
+    return patternItems;
   }
 
   /**
@@ -156,11 +111,11 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     const color = COLOR_PALETTE[pattern.colorIndex];
     const isActive = globalEnabled && pattern.enabled;
     
-    // Create a more readable label with color indicator
-    const colorIcon = this.getColorIcon(pattern.colorIndex);
-    let label = `${colorIcon} ${pattern.text}`;
-    if (label.length > 30) {
-      label = `${colorIcon} ${pattern.text.substring(0, 22)}...`;
+    // Create a clean label with just the pattern text
+    // Action icons will be provided by VS Code inline actions
+    let label = pattern.text;
+    if (label.length > 35) {
+      label = pattern.text.substring(0, 32) + '...';
     }
     
     const item: PatternTreeItem = {
@@ -418,57 +373,26 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
   }
 
   /**
-   * Start inline adding mode
+   * Start pattern addition by directly showing input box
    */
-  public startInlineAdd(): void {
-    this.isInlineAdding = true;
-    this.refresh();
-    
-    // Show instructions for inline editing
-    vscode.window.showInformationMessage(
-      'Click on the "Type pattern text here..." item in the tree to add your pattern',
-      { modal: false }
-    );
-  }
-
-  /**
-   * Start inline editing for a specific pattern
-   */
-  public startInlineEdit(patternId: string): void {
-    this.inlineEditingPatternId = patternId;
-    
-    // Show input box immediately for existing patterns
-    setTimeout(() => {
-      this.showInlineInputBox(patternId);
-    }, 100);
-  }
-
-  /**
-   * Start color selection mode for a pattern
-   */
-  public startColorSelection(patternId: string): void {
-    this.colorSelectionPatternId = patternId;
-    this.refresh();
-    
-    // Show instructions
-    const pattern = this.patternManager.getPatterns().find(p => p.id === patternId);
-    if (pattern) {
-      vscode.window.showInformationMessage(
-        `Select a new color for pattern "${pattern.text}" from the color picker in the tree`,
-        { modal: false }
-      );
-    }
-  }
-
-  /**
-   * Complete inline addition with direct input
-   */
-  public async completeInlineAdd(): Promise<void> {
+  public async startInlineAdd(): Promise<void> {
     await this.showInlineInputBox();
   }
 
   /**
-   * Show input box for inline pattern editing
+   * Start editing for a specific pattern using direct input
+   */
+  public async startInlineEdit(patternId: string): Promise<void> {
+    // Show input box immediately for existing patterns
+    await this.showInlineInputBox(patternId);
+  }
+
+  // Color selection is now handled directly through the color picker command
+
+  // Removed completeInlineAdd method - direct input is used instead
+
+  /**
+   * Show input box for pattern editing
    */
   private async showInlineInputBox(patternId?: string): Promise<void> {
     const existingPattern = patternId ? this.patternManager.getPatterns().find(p => p.id === patternId) : null;
@@ -505,37 +429,22 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
       }
     });
 
-    // Reset inline editing state
-    this.isInlineAdding = false;
-    this.inlineEditingPatternId = null;
-    this.refresh();
-
     if (patternText) {
       if (isEditing && existingPattern) {
         // Update existing pattern
         await this.patternManager.updatePattern(existingPattern.id, {
           text: patternText.trim()
         });
+        vscode.window.showInformationMessage(`Pattern updated to "${patternText.trim()}"`);
       } else {
         // Create new pattern
         await this.patternManager.addPattern(patternText.trim());
+        vscode.window.showInformationMessage(`Pattern "${patternText.trim()}" added successfully`);
       }
     }
   }
 
-  /**
-   * Check if currently in inline adding mode
-   */
-  public isInlineAddingMode(): boolean {
-    return this.isInlineAdding;
-  }
-
-  /**
-   * Check if a pattern is being inline edited
-   */
-  public isPatternInlineEditing(patternId: string): boolean {
-    return this.inlineEditingPatternId === patternId;
-  }
+  // Removed unused inline mode checking methods
 
   /**
    * Get color icon for a color index
@@ -572,20 +481,11 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
       });
     }
 
-    // Exit color selection mode
-    this.colorSelectionPatternId = null;
+    // Color selection completed
     this.refresh();
   }
 
-  /**
-   * Reset all inline modes
-   */
-  public resetInlineModes(): void {
-    this.isInlineAdding = false;
-    this.inlineEditingPatternId = null;
-    this.colorSelectionPatternId = null;
-    this.refresh();
-  }
+  // Inline modes removed - no longer needed
 
   /**
    * Dispose of resources

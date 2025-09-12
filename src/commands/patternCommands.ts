@@ -38,8 +38,6 @@ export class PatternCommands {
       vscode.commands.registerCommand('patternColorization.jumpToPrevious', () => this.jumpToPreviousHighlight()),
       vscode.commands.registerCommand('patternColorization.jumpToNextSelectedPattern', () => this.jumpToNextSelectedPatternOccurrence()),
       vscode.commands.registerCommand('patternColorization.jumpToPreviousSelectedPattern', () => this.jumpToPreviousSelectedPatternOccurrence()),
-      vscode.commands.registerCommand('patternColorization.completeInlineAdd', () => this.completeInlineAdd()),
-      vscode.commands.registerCommand('patternColorization.selectPatternColor', (patternId) => this.selectPatternColor(patternId)),
       vscode.commands.registerCommand('patternColorization.changePatternColor', (item) => this.changePatternColor(item))
     ];
 
@@ -474,6 +472,15 @@ export class PatternCommands {
       const success = await this.patternManager.togglePattern(patternId);
       if (!success) {
         vscode.window.showErrorMessage('Pattern not found');
+      } else {
+        // Provide feedback on toggle
+        const pattern = this.patternManager.getPatterns().find(p => p.id === patternId);
+        if (pattern) {
+          vscode.window.setStatusBarMessage(
+            `$(${pattern.enabled ? 'eye' : 'eye-closed'}) Pattern "${pattern.text}" ${pattern.enabled ? 'enabled' : 'disabled'}`,
+            2000
+          );
+        }
       }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to toggle pattern: ${error}`);
@@ -481,7 +488,7 @@ export class PatternCommands {
   }
 
   /**
-   * Edit a pattern using inline editing
+   * Edit a pattern using direct input dialog
    */
   private async editPattern(item?: any): Promise<void> {
     try {
@@ -493,6 +500,7 @@ export class PatternCommands {
         // Show quick pick to select pattern
         const patterns = this.patternManager.getPatterns();
         if (patterns.length === 0) {
+          vscode.window.showInformationMessage('No patterns to edit');
           return;
         }
 
@@ -515,14 +523,16 @@ export class PatternCommands {
 
       const pattern = this.patternManager.getPatterns().find(p => p.id === patternId);
       if (!pattern) {
+        vscode.window.showErrorMessage('Pattern not found');
         return;
       }
 
-      // Use inline editing for existing patterns
-      this.treeProvider.startInlineEdit(patternId);
+      // Use direct input for editing - no confusing "inline" behavior
+      await this.treeProvider.startInlineEdit(patternId);
       
     } catch (error) {
-      console.error('Failed to start inline pattern editing:', error);
+      console.error('Failed to edit pattern:', error);
+      vscode.window.showErrorMessage('Failed to edit pattern');
     }
   }
 
@@ -1354,29 +1364,7 @@ export class PatternCommands {
     }
   }
 
-  /**
-   * Complete inline pattern addition
-   */
-  private async completeInlineAdd(): Promise<void> {
-    try {
-      await this.treeProvider.completeInlineAdd();
-    } catch (error) {
-      console.error('Failed to complete inline add:', error);
-      vscode.window.showErrorMessage('Failed to add pattern');
-    }
-  }
-
-  /**
-   * Select color for a pattern
-   */
-  private async selectPatternColor(patternId: string): Promise<void> {
-    try {
-      await this.treeProvider.showColorSelection(patternId);
-    } catch (error) {
-      console.error('Failed to select pattern color:', error);
-      vscode.window.showErrorMessage('Failed to change pattern color');
-    }
-  }
+  // Removed confusing inline add and select color methods - functionality moved to direct input
 
   /**
    * Change pattern color from context menu

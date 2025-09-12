@@ -54,7 +54,7 @@
         "command": "patternColorization.togglePattern",
         "title": "Toggle Pattern",
         "category": "Pattern Colorization",
-        "icon": "$(check)"
+        "icon": "$(eye)"
       },
       {
         "command": "patternColorization.clearPatterns",
@@ -121,18 +121,6 @@
         "title": "Change Pattern Color",
         "category": "Pattern Colorization",
         "icon": "$(color-mode)"
-      },
-      {
-        "command": "patternColorization.completeInlineAdd",
-        "title": "Complete Inline Add",
-        "category": "Pattern Colorization",
-        "enablement": "false"
-      },
-      {
-        "command": "patternColorization.selectPatternColor",
-        "title": "Select Pattern Color",
-        "category": "Pattern Colorization",
-        "enablement": "false"
       }
     ],
     "views": {
@@ -193,6 +181,16 @@
       ],
       "view/item/context": [
         {
+          "command": "patternColorization.togglePattern",
+          "when": "view == patternColorizationView && viewItem == patternItem",
+          "group": "inline@1"
+        },
+        {
+          "command": "patternColorization.changePatternColor",
+          "when": "view == patternColorizationView && viewItem == patternItem",
+          "group": "inline@2"
+        },
+        {
           "command": "patternColorization.editPattern",
           "when": "view == patternColorizationView && viewItem == patternItem",
           "group": "1_modification@1"
@@ -201,11 +199,6 @@
           "command": "patternColorization.deletePattern",
           "when": "view == patternColorizationView && viewItem == patternItem",
           "group": "1_modification@2"
-        },
-        {
-          "command": "patternColorization.changePatternColor",
-          "when": "view == patternColorizationView && viewItem == patternItem",
-          "group": "2_color@1"
         }
       ],
       "editor/context": [
