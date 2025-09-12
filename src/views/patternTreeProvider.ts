@@ -37,24 +37,30 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     // Set context value for context menu
     item.contextValue = element.contextValue;
     
-    // Set icon with better VS Code integration
+    // Set icon - no icon for pattern items to reduce confusion
     item.iconPath = this.getIconPath(element);
     
-    // Remove confusing click behavior - no commands on pattern items
-    // Users should use the action icons instead
+    // For pattern items, we use the color indicator in the label itself
+    // No additional theming needed as the Unicode symbol provides visual color reference
+    
+    // Add click behavior for pattern items
     if (element.contextValue === 'emptyItem') {
       // Empty item shows help text but is not clickable
       item.command = undefined;
-    } else {
-      // Pattern items are not clickable to avoid confusion
-      // Users must use the action buttons (eye icon to toggle, color icon to change color)
-      item.command = undefined;
+    } else if (element.contextValue === 'patternItem') {
+      // Pattern items are clickable to toggle visibility
+      // Click on the item toggles pattern visibility
+      item.command = {
+        command: 'patternColorization.togglePattern',
+        title: 'Toggle Pattern',
+        arguments: [element.id]
+      };
     }
 
     // Add accessibility properties
     item.accessibilityInformation = {
       label: this.getAccessibilityLabel(element),
-      role: element.contextValue === 'emptyItem' ? 'text' : 'listitem'
+      role: element.contextValue === 'emptyItem' ? 'text' : 'button'
     };
 
     return item;
@@ -111,12 +117,18 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     const color = COLOR_PALETTE[pattern.colorIndex];
     const isActive = globalEnabled && pattern.enabled;
     
-    // Create a clean label with just the pattern text
-    // Action icons will be provided by VS Code inline actions
-    let label = pattern.text;
-    if (label.length > 35) {
-      label = pattern.text.substring(0, 32) + '...';
+    // Clean pattern text without any leading icons
+    let patternText = pattern.text;
+    if (patternText.length > 30) {
+      patternText = pattern.text.substring(0, 27) + '...';
     }
+    
+    // Add a subtle color indicator using Unicode symbols
+    const colorIndicators = ['●', '■', '▲', '♦', '♥', '★', '●', '◉'];
+    const colorIndicator = colorIndicators[pattern.colorIndex] || '●';
+    
+    // Format: Pattern Text with color indicator at the end
+    const label = `${patternText} ${colorIndicator}`;
     
     const item: PatternTreeItem = {
       id: pattern.id,
@@ -136,26 +148,21 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
   private createPatternDescription(pattern: Pattern, color: any, isActive: boolean): string {
     const parts: string[] = [];
     
-    // Add color indicator
-    parts.push(`${color.name}`);
+    // Show color name prominently
+    parts.push(color.name);
     
     // Add user description if available
     if (pattern.description && pattern.description.length > 0) {
       let desc = pattern.description;
-      if (desc.length > 30) {
-        desc = desc.substring(0, 27) + '...';
+      if (desc.length > 20) {
+        desc = desc.substring(0, 17) + '...';
       }
       parts.push(`• ${desc}`);
     }
     
-    // Add click hint for color changing
-    if (isActive && parts.length === 1) { // Only show if no other description
-      parts.push('(right-click to change color)');
-    }
-    
-    // Add status
+    // Add status indicator if inactive
     if (!isActive) {
-      parts.push('(inactive)');
+      parts.push('(disabled)');
     }
     
     return parts.join(' ');
@@ -189,12 +196,15 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     const color = COLOR_PALETTE[pattern.colorIndex];
     const isActive = config.enabled && pattern.enabled;
     
-    let label = `Pattern: ${pattern.text}. Color: ${color.name}.`;
+    const colorIndicators = ['●', '■', '▲', '♦', '♥', '★', '●', '◉'];
+    const colorIndicator = colorIndicators[pattern.colorIndex] || '●';
+    
+    let label = `Pattern: ${pattern.text}. Color indicator: ${colorIndicator}, ${color.name} highlighting.`;
     if (pattern.description) {
       label += ` Description: ${pattern.description}.`;
     }
-    label += ` Status: ${isActive ? 'active' : 'inactive'}.`;
-    label += ' Click to toggle, right-click for options.';
+    label += ` Status: ${isActive ? 'enabled and actively highlighting' : 'disabled'}.`;
+    label += ' Click to toggle, use eye button to enable/disable, right-click for more options.';
     
     return label;
   }
@@ -226,19 +236,22 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     const tooltip = new vscode.MarkdownString();
     tooltip.isTrusted = true;
     
-    // Pattern info with icon
-    tooltip.appendMarkdown(`$(${this.getTooltipIcon(item)}) **${pattern.text}**\n\n`);
+    // Pattern info with color indicator
+    const colorIndicators = ['●', '■', '▲', '♦', '♥', '★', '●', '◉'];
+    const colorIndicator = colorIndicators[pattern.colorIndex] || '●';
+    tooltip.appendMarkdown(`${colorIndicator} **${pattern.text}**\n\n`);
     
-    // Color information
-    tooltip.appendMarkdown(`**Color:** ${color.name}\n`);
+    // Color information with visual context
+    tooltip.appendMarkdown(`**Color:** ${color.name} ${colorIndicator}\n`);
+    tooltip.appendMarkdown(`*This is the same ${color.name.toLowerCase()} background color used to highlight "${pattern.text}" in your files*\n\n`);
     
     // Status with clear indicators
     if (isActive) {
-      tooltip.appendMarkdown('**Status:** $(check) Active\n');
+      tooltip.appendMarkdown('**Status:** $(check) Active - Currently highlighting matches\n');
     } else if (!config.enabled) {
       tooltip.appendMarkdown('**Status:** $(circle-slash) Highlighting disabled globally\n');
     } else {
-      tooltip.appendMarkdown('**Status:** $(circle-outline) Pattern disabled\n');
+      tooltip.appendMarkdown('**Status:** $(eye-closed) Pattern disabled - Click eye button to enable\n');
     }
     
     // Description if available
@@ -252,75 +265,32 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     
     tooltip.appendMarkdown(`\n**Created:** ${new Date(pattern.createdAt).toLocaleString()}\n\n`);
     
-    // Action hints
+    // Action hints with new simplified interaction model
     tooltip.appendMarkdown('---\n');
-    tooltip.appendMarkdown('$(mouse-pointer) *Click to toggle • Right-click for options*\n');
-    tooltip.appendMarkdown('$(color-mode) *Right-click and select "Change Pattern Color" to pick a new color*');
+    tooltip.appendMarkdown('**Actions:**\n');
+    tooltip.appendMarkdown('• $(eye) **Eye Button** - Toggle pattern on/off\n');
+    tooltip.appendMarkdown('• $(mouse-pointer) **Click Pattern** - Toggle pattern visibility\n');
+    tooltip.appendMarkdown('• $(menu) **Right-click** - Edit, delete, or change color\n');
+    tooltip.appendMarkdown(`\n*Color Indicator: ${colorIndicator} represents ${color.name} highlighting*`);
 
     return tooltip;
   }
 
-  /**
-   * Get appropriate icon for tooltip based on pattern state
-   */
-  private getTooltipIcon(item: PatternTreeItem): string {
-    const config = this.patternManager.getConfig();
-    
-    if (!config.enabled) {
-      return 'circle-slash';
-    }
-    
-    if (!item.enabled) {
-      return 'circle-outline';
-    }
-    
-    // Use different icons for different colors
-    const icons = ['circle-filled', 'triangle-filled', 'diamond-filled', 'square-filled'];
-    return icons[item.colorIndex % icons.length];
-  }
 
   /**
    * Get appropriate icon for the pattern item
    */
-  private getIconPath(item: PatternTreeItem): vscode.ThemeIcon {
+  private getIconPath(item: PatternTreeItem): vscode.ThemeIcon | undefined {
     if (item.contextValue === 'emptyItem') {
       return new vscode.ThemeIcon('lightbulb', new vscode.ThemeColor('textLink.foreground'));
     }
 
-    if (item.contextValue === 'inlineAddItem') {
-      return new vscode.ThemeIcon('add', new vscode.ThemeColor('textLink.foreground'));
+    // For pattern items, return no icon - we'll handle coloring differently
+    if (item.contextValue === 'patternItem') {
+      return undefined;
     }
 
-    if (item.contextValue === 'colorPickerItem') {
-      return new vscode.ThemeIcon('color-mode', new vscode.ThemeColor('textLink.foreground'));
-    }
-
-    const config = this.patternManager.getConfig();
-
-    // Global highlighting disabled
-    if (!config.enabled) {
-      return new vscode.ThemeIcon('eye-closed', new vscode.ThemeColor('errorForeground'));
-    }
-
-    // Pattern disabled
-    if (!item.enabled) {
-      return new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('disabledForeground'));
-    }
-
-    // Active pattern - use distinctive icons for better visual hierarchy with color coding
-    const iconSets = [
-      { icon: 'circle-filled', color: 'charts.blue' },        // Blue
-      { icon: 'primitive-square', color: 'charts.green' },    // Green  
-      { icon: 'triangle-up', color: 'charts.yellow' },        // Yellow
-      { icon: 'diamond', color: 'charts.orange' },            // Orange
-      { icon: 'circle-filled', color: 'charts.purple' },      // Purple
-      { icon: 'heart', color: 'charts.red' },                 // Pink
-      { icon: 'hexagon', color: 'terminal.ansiCyan' },        // Teal
-      { icon: 'circle-filled', color: 'charts.foreground' }   // Gray
-    ];
-
-    const iconSet = iconSets[item.colorIndex % iconSets.length];
-    return new vscode.ThemeIcon(iconSet.icon, new vscode.ThemeColor(iconSet.color));
+    return undefined;
   }
 
 
@@ -446,13 +416,6 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
 
   // Removed unused inline mode checking methods
 
-  /**
-   * Get color icon for a color index
-   */
-  private getColorIcon(colorIndex: number): string {
-    const icons = ['🔵', '🟢', '🟡', '🟠', '🟣', '🔴', '🟦', '⚫'];
-    return icons[colorIndex] || '🔵';
-  }
 
   /**
    * Show color selection dialog
@@ -463,9 +426,10 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
       return;
     }
 
-    // Create color options
+    // Create color options with color indicators
+    const colorIndicators = ['●', '■', '▲', '♦', '♥', '★', '●', '◉'];
     const colorOptions = COLOR_PALETTE.map((color, index) => ({
-      label: `${this.getColorIcon(index)} ${color.name}`,
+      label: `${colorIndicators[index] || '●'} ${color.name}`,
       description: index === pattern.colorIndex ? '(current)' : '',
       colorIndex: index
     }));

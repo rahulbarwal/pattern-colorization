@@ -28,7 +28,7 @@ export class PatternCommands {
       vscode.commands.registerCommand('patternColorization.clearPatterns', () => this.clearPatterns()),
       vscode.commands.registerCommand('patternColorization.refreshPatterns', () => this.refreshPatterns()),
       vscode.commands.registerCommand('patternColorization.toggleHighlighting', () => this.toggleHighlighting()),
-      vscode.commands.registerCommand('patternColorization.togglePattern', (patternId) => this.togglePattern(patternId)),
+      vscode.commands.registerCommand('patternColorization.togglePattern', (item) => this.togglePattern(typeof item === 'string' ? item : item?.id)),
       vscode.commands.registerCommand('patternColorization.editPattern', (item) => this.editPattern(item)),
       vscode.commands.registerCommand('patternColorization.addFromSelection', () => this.addPatternFromSelection()),
       vscode.commands.registerCommand('patternColorization.importPatterns', () => this.importPatterns()),
@@ -467,11 +467,17 @@ export class PatternCommands {
   /**
    * Toggle a specific pattern on/off
    */
-  private async togglePattern(patternId: string): Promise<void> {
+  private async togglePattern(patternId: string | undefined): Promise<void> {
     try {
+      if (!patternId) {
+        vscode.window.showErrorMessage('Pattern ID not provided');
+        return;
+      }
+      
       const success = await this.patternManager.togglePattern(patternId);
       if (!success) {
         vscode.window.showErrorMessage('Pattern not found');
+        console.error('Failed to toggle pattern - pattern not found:', patternId);
       } else {
         // Provide feedback on toggle
         const pattern = this.patternManager.getPatterns().find(p => p.id === patternId);
@@ -483,6 +489,7 @@ export class PatternCommands {
         }
       }
     } catch (error) {
+      console.error('Error in togglePattern:', error);
       vscode.window.showErrorMessage(`Failed to toggle pattern: ${error}`);
     }
   }

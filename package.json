@@ -181,24 +181,26 @@
       ],
       "view/item/context": [
         {
-          "command": "patternColorization.togglePattern",
-          "when": "view == patternColorizationView && viewItem == patternItem",
-          "group": "inline@1"
-        },
-        {
           "command": "patternColorization.changePatternColor",
           "when": "view == patternColorizationView && viewItem == patternItem",
-          "group": "inline@2"
+          "group": "1_color@1"
         },
         {
           "command": "patternColorization.editPattern",
           "when": "view == patternColorizationView && viewItem == patternItem",
-          "group": "1_modification@1"
+          "group": "2_modification@1"
         },
         {
           "command": "patternColorization.deletePattern",
           "when": "view == patternColorizationView && viewItem == patternItem",
-          "group": "1_modification@2"
+          "group": "2_modification@2"
+        }
+      ],
+      "view/item/inline": [
+        {
+          "command": "patternColorization.togglePattern",
+          "when": "view == patternColorizationView && viewItem == patternItem",
+          "group": "inline@1"
         }
       ],
       "editor/context": [
