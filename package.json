@@ -261,6 +261,15 @@
         }
       },
       {
+        "id": "patternColorization.color0.foreground",
+        "description": "Foreground/text color for pattern 0 (Soft Blue)",
+        "defaults": {
+          "dark": "#60A5FA",
+          "light": "#1976D2",
+          "highContrast": "#0066CC"
+        }
+      },
+      {
         "id": "patternColorization.color1.background",
         "description": "Background color for pattern 1 (Soft Green)",
         "defaults": {
@@ -275,6 +284,15 @@
         "defaults": {
           "dark": "#166534",
           "light": "#4CAF50",
+          "highContrast": "#00AA00"
+        }
+      },
+      {
+        "id": "patternColorization.color1.foreground",
+        "description": "Foreground/text color for pattern 1 (Soft Green)",
+        "defaults": {
+          "dark": "#4ADE80",
+          "light": "#388E3C",
           "highContrast": "#00AA00"
         }
       },
@@ -297,6 +315,15 @@
         }
       },
       {
+        "id": "patternColorization.color2.foreground",
+        "description": "Foreground/text color for pattern 2 (Soft Yellow)",
+        "defaults": {
+          "dark": "#FDE047",
+          "light": "#F57F17",
+          "highContrast": "#FFCC00"
+        }
+      },
+      {
         "id": "patternColorization.color3.background",
         "description": "Background color for pattern 3 (Soft Orange)",
         "defaults": {
@@ -311,6 +338,15 @@
         "defaults": {
           "dark": "#C2410C",
           "light": "#FF9800",
+          "highContrast": "#FF8800"
+        }
+      },
+      {
+        "id": "patternColorization.color3.foreground",
+        "description": "Foreground/text color for pattern 3 (Soft Orange)",
+        "defaults": {
+          "dark": "#FB923C",
+          "light": "#E65100",
           "highContrast": "#FF8800"
         }
       },
@@ -333,6 +369,15 @@
         }
       },
       {
+        "id": "patternColorization.color4.foreground",
+        "description": "Foreground/text color for pattern 4 (Soft Purple)",
+        "defaults": {
+          "dark": "#A78BFA",
+          "light": "#6A1B9A",
+          "highContrast": "#AA44FF"
+        }
+      },
+      {
         "id": "patternColorization.color5.background",
         "description": "Background color for pattern 5 (Soft Pink)",
         "defaults": {
@@ -347,6 +392,15 @@
         "defaults": {
           "dark": "#BE185D",
           "light": "#E91E63",
+          "highContrast": "#FF4488"
+        }
+      },
+      {
+        "id": "patternColorization.color5.foreground",
+        "description": "Foreground/text color for pattern 5 (Soft Pink)",
+        "defaults": {
+          "dark": "#F472B6",
+          "light": "#C2185B",
           "highContrast": "#FF4488"
         }
       },
@@ -369,6 +423,15 @@
         }
       },
       {
+        "id": "patternColorization.color6.foreground",
+        "description": "Foreground/text color for pattern 6 (Soft Teal)",
+        "defaults": {
+          "dark": "#2DD4BF",
+          "light": "#00695C",
+          "highContrast": "#00AAAA"
+        }
+      },
+      {
         "id": "patternColorization.color7.background",
         "description": "Background color for pattern 7 (Soft Gray)",
         "defaults": {
@@ -383,6 +446,15 @@
         "defaults": {
           "dark": "#374151",
           "light": "#757575",
+          "highContrast": "#888888"
+        }
+      },
+      {
+        "id": "patternColorization.color7.foreground",
+        "description": "Foreground/text color for pattern 7 (Soft Gray)",
+        "defaults": {
+          "dark": "#9CA3AF",
+          "light": "#424242",
           "highContrast": "#888888"
         }
       }

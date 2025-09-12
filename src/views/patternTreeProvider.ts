@@ -30,18 +30,16 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
   public getTreeItem(element: PatternTreeItem): vscode.TreeItem {
     const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
     
-    // Set description with improved formatting
-    item.description = this.formatDescription(element);
+    // Set description with improved formatting - no description for clean look
+    item.description = element.contextValue === 'emptyItem' ? element.description : undefined;
     item.tooltip = this.createTooltip(element);
     
     // Set context value for context menu
     item.contextValue = element.contextValue;
     
-    // Set icon - no icon for pattern items to reduce confusion
+    // No icons for clean appearance - let inline actions handle visibility
     item.iconPath = this.getIconPath(element);
     
-    // For pattern items, we use the color indicator in the label itself
-    // No additional theming needed as the Unicode symbol provides visual color reference
     
     // Add click behavior for pattern items
     if (element.contextValue === 'emptyItem') {
@@ -55,6 +53,12 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
         title: 'Toggle Pattern',
         arguments: [element.id]
       };
+    }
+
+    // Add visual styling for disabled patterns
+    if (element.contextValue === 'patternItem' && !element.enabled) {
+      // Use a resource URI to apply subtle styling to disabled patterns
+      item.resourceUri = vscode.Uri.parse(`disabled-pattern:${element.id}`);
     }
 
     // Add accessibility properties
@@ -97,14 +101,9 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
       }];
     }
 
-    // Sort patterns: enabled first, then by creation date
+    // Keep patterns in their original creation order - no dynamic sorting
     const patternItems = patterns
-      .sort((a, b) => {
-        if (a.enabled !== b.enabled) {
-          return a.enabled ? -1 : 1;
-        }
-        return a.createdAt - b.createdAt;
-      })
+      .sort((a, b) => a.createdAt - b.createdAt)
       .map(pattern => this.createTreeItem(pattern, config.enabled));
 
     return patternItems;
@@ -113,27 +112,20 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
   /**
    * Create a tree item from a pattern
    */
-  private createTreeItem(pattern: Pattern, globalEnabled: boolean): PatternTreeItem {
-    const color = COLOR_PALETTE[pattern.colorIndex];
-    const isActive = globalEnabled && pattern.enabled;
-    
-    // Clean pattern text without any leading icons
+  private createTreeItem(pattern: Pattern, _globalEnabled: boolean): PatternTreeItem {
+    // Clean pattern text without any symbols or indicators
     let patternText = pattern.text;
-    if (patternText.length > 30) {
-      patternText = pattern.text.substring(0, 27) + '...';
+    if (patternText.length > 40) {
+      patternText = pattern.text.substring(0, 37) + '...';
     }
     
-    // Add a subtle color indicator using Unicode symbols
-    const colorIndicators = ['●', '■', '▲', '♦', '♥', '★', '●', '◉'];
-    const colorIndicator = colorIndicators[pattern.colorIndex] || '●';
-    
-    // Format: Pattern Text with color indicator at the end
-    const label = `${patternText} ${colorIndicator}`;
+    // Simple label with just the pattern text - no symbols
+    const label = patternText;
     
     const item: PatternTreeItem = {
       id: pattern.id,
       label: label,
-      description: this.createPatternDescription(pattern, color, isActive),
+      description: '', // Empty description for clean look
       colorIndex: pattern.colorIndex,
       enabled: pattern.enabled,
       contextValue: 'patternItem'
@@ -142,42 +134,7 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     return item;
   }
 
-  /**
-   * Create formatted description for a pattern
-   */
-  private createPatternDescription(pattern: Pattern, color: any, isActive: boolean): string {
-    const parts: string[] = [];
-    
-    // Show color name prominently
-    parts.push(color.name);
-    
-    // Add user description if available
-    if (pattern.description && pattern.description.length > 0) {
-      let desc = pattern.description;
-      if (desc.length > 20) {
-        desc = desc.substring(0, 17) + '...';
-      }
-      parts.push(`• ${desc}`);
-    }
-    
-    // Add status indicator if inactive
-    if (!isActive) {
-      parts.push('(disabled)');
-    }
-    
-    return parts.join(' ');
-  }
 
-  /**
-   * Format description with better readability
-   */
-  private formatDescription(element: PatternTreeItem): string {
-    if (element.contextValue === 'emptyItem') {
-      return element.description;
-    }
-    
-    return element.description;
-  }
 
   /**
    * Get accessibility label for screen readers
@@ -196,10 +153,7 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     const color = COLOR_PALETTE[pattern.colorIndex];
     const isActive = config.enabled && pattern.enabled;
     
-    const colorIndicators = ['●', '■', '▲', '♦', '♥', '★', '●', '◉'];
-    const colorIndicator = colorIndicators[pattern.colorIndex] || '●';
-    
-    let label = `Pattern: ${pattern.text}. Color indicator: ${colorIndicator}, ${color.name} highlighting.`;
+    let label = `Pattern: ${pattern.text}. Uses ${color.name} highlighting color.`;
     if (pattern.description) {
       label += ` Description: ${pattern.description}.`;
     }
@@ -236,14 +190,12 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     const tooltip = new vscode.MarkdownString();
     tooltip.isTrusted = true;
     
-    // Pattern info with color indicator
-    const colorIndicators = ['●', '■', '▲', '♦', '♥', '★', '●', '◉'];
-    const colorIndicator = colorIndicators[pattern.colorIndex] || '●';
-    tooltip.appendMarkdown(`${colorIndicator} **${pattern.text}**\n\n`);
+    // Pattern info without color indicators
+    tooltip.appendMarkdown(`**${pattern.text}**\n\n`);
     
     // Color information with visual context
-    tooltip.appendMarkdown(`**Color:** ${color.name} ${colorIndicator}\n`);
-    tooltip.appendMarkdown(`*This is the same ${color.name.toLowerCase()} background color used to highlight "${pattern.text}" in your files*\n\n`);
+    tooltip.appendMarkdown(`**Color:** ${color.name}\n`);
+    tooltip.appendMarkdown(`*This pattern uses ${color.name.toLowerCase()} background highlighting in your files*\n\n`);
     
     // Status with clear indicators
     if (isActive) {
@@ -271,7 +223,6 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
     tooltip.appendMarkdown('• $(eye) **Eye Button** - Toggle pattern on/off\n');
     tooltip.appendMarkdown('• $(mouse-pointer) **Click Pattern** - Toggle pattern visibility\n');
     tooltip.appendMarkdown('• $(menu) **Right-click** - Edit, delete, or change color\n');
-    tooltip.appendMarkdown(`\n*Color Indicator: ${colorIndicator} represents ${color.name} highlighting*`);
 
     return tooltip;
   }
@@ -285,8 +236,13 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
       return new vscode.ThemeIcon('lightbulb', new vscode.ThemeColor('textLink.foreground'));
     }
 
-    // For pattern items, return no icon - we'll handle coloring differently
+    // For pattern items, only show colored circle when pattern is enabled
     if (item.contextValue === 'patternItem') {
+      if (item.enabled) {
+        const colorIndex = item.colorIndex;
+        return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(`patternColorization.color${colorIndex}.foreground`));
+      }
+      // No icon for disabled patterns - provides clear visual feedback
       return undefined;
     }
 
@@ -426,10 +382,9 @@ export class PatternTreeProvider implements vscode.TreeDataProvider<PatternTreeI
       return;
     }
 
-    // Create color options with color indicators
-    const colorIndicators = ['●', '■', '▲', '♦', '♥', '★', '●', '◉'];
+    // Create color options without color indicators
     const colorOptions = COLOR_PALETTE.map((color, index) => ({
-      label: `${colorIndicators[index] || '●'} ${color.name}`,
+      label: color.name,
       description: index === pattern.colorIndex ? '(current)' : '',
       colorIndex: index
     }));
