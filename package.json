@@ -4,6 +4,7 @@
   "description": "Highlight up to 8 words/patterns with different background colors",
   "version": "1.0.1",
   "publisher": "shaktiman",
+  "icon": "icon.svg",
   "repository": {
     "type": "git",
     "url": "https://github.com/rahulbarwal/pattern-colorization.git"
