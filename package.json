@@ -3,7 +3,7 @@
   "displayName": "Pattern Colorization",
   "description": "Highlight up to 8 words/patterns with different background colors",
   "version": "1.0.0",
-  "publisher": "your-publisher",
+  "publisher": "shaktiman",
   "engines": {
     "vscode": "^1.74.0"
   },
