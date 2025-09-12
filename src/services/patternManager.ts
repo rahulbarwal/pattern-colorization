@@ -1,6 +1,16 @@
-import * as vscode from 'vscode';
-import { Pattern, PatternConfig, PatternChangeEvent, PatternEventType } from '../models/pattern';
-import { COLOR_PALETTE, MAX_PATTERNS, DEFAULT_CONFIG, STORAGE_KEYS } from '../constants/colors';
+import * as vscode from "vscode";
+import {
+  Pattern,
+  PatternConfig,
+  PatternChangeEvent,
+  PatternEventType,
+} from "../models/pattern";
+import {
+  COLOR_PALETTE,
+  MAX_PATTERNS,
+  DEFAULT_CONFIG,
+  STORAGE_KEYS,
+} from "../constants/colors";
 
 /**
  * Manages pattern storage, CRUD operations, and state persistence
@@ -9,8 +19,9 @@ export class PatternManager {
   private patterns: Pattern[] = [];
   private config: PatternConfig = { ...DEFAULT_CONFIG };
   private lastColorIndex: number = 0;
-  private readonly _onDidChangePatterns = new vscode.EventEmitter<PatternChangeEvent>();
-  
+  private readonly _onDidChangePatterns =
+    new vscode.EventEmitter<PatternChangeEvent>();
+
   /**
    * Event fired when patterns change
    */
@@ -31,7 +42,7 @@ export class PatternManager {
    * Get enabled patterns only
    */
   public getEnabledPatterns(): Pattern[] {
-    return this.patterns.filter(p => p.enabled);
+    return this.patterns.filter((p) => p.enabled);
   }
 
   /**
@@ -44,21 +55,24 @@ export class PatternManager {
   /**
    * Add a new pattern
    */
-  public async addPattern(text: string, description?: string): Promise<Pattern | null> {
+  public async addPattern(
+    text: string,
+    description?: string
+  ): Promise<Pattern | null> {
     if (this.patterns.length >= MAX_PATTERNS) {
       return null;
     }
 
     if (!text.trim()) {
-      vscode.window.showErrorMessage('Pattern text cannot be empty');
+      vscode.window.showErrorMessage("Pattern text cannot be empty");
       return null;
     }
 
     // Check for duplicate patterns
-    const existingPattern = this.patterns.find(p => 
-      p.text.toLowerCase() === text.toLowerCase()
+    const existingPattern = this.patterns.find(
+      (p) => p.text.toLowerCase() === text.toLowerCase()
     );
-    
+
     if (existingPattern) {
       return null;
     }
@@ -69,7 +83,7 @@ export class PatternManager {
       colorIndex: this.getNextColorIndex(),
       enabled: true,
       createdAt: Date.now(),
-      description: description?.trim()
+      description: description?.trim(),
     };
 
     this.patterns.push(pattern);
@@ -77,7 +91,7 @@ export class PatternManager {
 
     this._onDidChangePatterns.fire({
       type: PatternEventType.ADDED,
-      pattern
+      pattern,
     });
 
     return pattern;
@@ -87,7 +101,7 @@ export class PatternManager {
    * Remove a pattern by ID
    */
   public async removePattern(id: string): Promise<boolean> {
-    const index = this.patterns.findIndex(p => p.id === id);
+    const index = this.patterns.findIndex((p) => p.id === id);
     if (index === -1) {
       return false;
     }
@@ -98,7 +112,7 @@ export class PatternManager {
 
     this._onDidChangePatterns.fire({
       type: PatternEventType.REMOVED,
-      pattern
+      pattern,
     });
 
     return true;
@@ -107,8 +121,11 @@ export class PatternManager {
   /**
    * Update a pattern
    */
-  public async updatePattern(id: string, updates: Partial<Pattern>): Promise<boolean> {
-    const pattern = this.patterns.find(p => p.id === id);
+  public async updatePattern(
+    id: string,
+    updates: Partial<Pattern>
+  ): Promise<boolean> {
+    const pattern = this.patterns.find((p) => p.id === id);
     if (!pattern) {
       return false;
     }
@@ -118,7 +135,7 @@ export class PatternManager {
 
     this._onDidChangePatterns.fire({
       type: PatternEventType.UPDATED,
-      pattern
+      pattern,
     });
 
     return true;
@@ -128,7 +145,7 @@ export class PatternManager {
    * Toggle pattern enabled state
    */
   public async togglePattern(id: string): Promise<boolean> {
-    const pattern = this.patterns.find(p => p.id === id);
+    const pattern = this.patterns.find((p) => p.id === id);
     if (!pattern) {
       return false;
     }
@@ -138,7 +155,7 @@ export class PatternManager {
 
     this._onDidChangePatterns.fire({
       type: PatternEventType.TOGGLED,
-      pattern
+      pattern,
     });
 
     return true;
@@ -157,7 +174,7 @@ export class PatternManager {
     await this.saveState();
 
     this._onDidChangePatterns.fire({
-      type: PatternEventType.CLEARED
+      type: PatternEventType.CLEARED,
     });
   }
 
@@ -171,7 +188,7 @@ export class PatternManager {
     // Trigger refresh of all patterns
     this._onDidChangePatterns.fire({
       type: PatternEventType.UPDATED,
-      patterns: this.patterns
+      patterns: this.patterns,
     });
   }
 
@@ -188,16 +205,19 @@ export class PatternManager {
   public async importPatterns(patternsData: any[]): Promise<void> {
     try {
       const validPatterns: Pattern[] = [];
-      
+
       for (const data of patternsData) {
-        if (data.text && typeof data.text === 'string') {
+        if (data.text && typeof data.text === "string") {
           const pattern: Pattern = {
             id: data.id || this.generateId(),
             text: data.text.trim(),
-            colorIndex: Math.min(Math.max(data.colorIndex || 0, 0), COLOR_PALETTE.length - 1),
+            colorIndex: Math.min(
+              Math.max(data.colorIndex || 0, 0),
+              COLOR_PALETTE.length - 1
+            ),
             enabled: data.enabled !== false,
             createdAt: data.createdAt || Date.now(),
-            description: data.description
+            description: data.description,
           };
           validPatterns.push(pattern);
         }
@@ -208,12 +228,14 @@ export class PatternManager {
 
       this._onDidChangePatterns.fire({
         type: PatternEventType.UPDATED,
-        patterns: this.patterns
+        patterns: this.patterns,
       });
 
       // Patterns imported silently
     } catch (error) {
-      vscode.window.showErrorMessage('Failed to import patterns: Invalid format');
+      vscode.window.showErrorMessage(
+        "Failed to import patterns: Invalid format"
+      );
     }
   }
 
@@ -221,13 +243,13 @@ export class PatternManager {
    * Export patterns to JSON
    */
   public exportPatterns(): any[] {
-    return this.patterns.map(pattern => ({
+    return this.patterns.map((pattern) => ({
       id: pattern.id,
       text: pattern.text,
       colorIndex: pattern.colorIndex,
       enabled: pattern.enabled,
       createdAt: pattern.createdAt,
-      description: pattern.description
+      description: pattern.description,
     }));
   }
 
@@ -243,8 +265,8 @@ export class PatternManager {
    */
   private getNextColorIndex(): number {
     // Find the next unused color index
-    const usedIndices = new Set(this.patterns.map(p => p.colorIndex));
-    
+    const usedIndices = new Set(this.patterns.map((p) => p.colorIndex));
+
     for (let i = 0; i < COLOR_PALETTE.length; i++) {
       if (!usedIndices.has(i)) {
         this.lastColorIndex = i;
@@ -262,9 +284,19 @@ export class PatternManager {
    */
   private loadState(): void {
     try {
-      const storedPatterns = this.context.workspaceState.get<Pattern[]>(STORAGE_KEYS.PATTERNS);
-      const storedConfig = this.context.workspaceState.get<PatternConfig>(STORAGE_KEYS.CONFIG);
-      const storedLastColorIndex = this.context.workspaceState.get<number>(STORAGE_KEYS.LAST_COLOR_INDEX);
+      const storedPatterns = this.context.workspaceState.get<Pattern[]>(
+        STORAGE_KEYS.PATTERNS
+      );
+      const storedConfig = this.context.workspaceState.get<PatternConfig>(
+        STORAGE_KEYS.CONFIG
+      );
+      const storedLastColorIndex = this.context.workspaceState.get<number>(
+        STORAGE_KEYS.LAST_COLOR_INDEX
+      );
+
+      console.log("PatternManager: Loading state from storage");
+      console.log("PatternManager: Stored patterns:", storedPatterns);
+      console.log("PatternManager: Stored config:", storedConfig);
 
       this.patterns = storedPatterns || [];
       this.config = { ...DEFAULT_CONFIG, ...storedConfig };
@@ -272,11 +304,16 @@ export class PatternManager {
 
       // Validate patterns
       this.patterns = this.patterns
-        .filter(p => p.text && typeof p.text === 'string')
+        .filter((p) => p.text && typeof p.text === "string")
         .slice(0, MAX_PATTERNS);
-        
+
+      console.log(
+        "PatternManager: Loaded patterns after validation:",
+        this.patterns.length,
+        this.patterns
+      );
     } catch (error) {
-      console.error('Failed to load pattern state:', error);
+      console.error("Failed to load pattern state:", error);
       this.patterns = [];
       this.config = { ...DEFAULT_CONFIG };
       this.lastColorIndex = 0;
@@ -289,13 +326,19 @@ export class PatternManager {
   private async saveState(): Promise<void> {
     try {
       await Promise.all([
-        this.context.workspaceState.update(STORAGE_KEYS.PATTERNS, this.patterns),
+        this.context.workspaceState.update(
+          STORAGE_KEYS.PATTERNS,
+          this.patterns
+        ),
         this.context.workspaceState.update(STORAGE_KEYS.CONFIG, this.config),
-        this.context.workspaceState.update(STORAGE_KEYS.LAST_COLOR_INDEX, this.lastColorIndex)
+        this.context.workspaceState.update(
+          STORAGE_KEYS.LAST_COLOR_INDEX,
+          this.lastColorIndex
+        ),
       ]);
     } catch (error) {
-      console.error('Failed to save pattern state:', error);
-      vscode.window.showErrorMessage('Failed to save pattern configuration');
+      console.error("Failed to save pattern state:", error);
+      vscode.window.showErrorMessage("Failed to save pattern configuration");
     }
   }
 

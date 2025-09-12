@@ -1,8 +1,8 @@
-import * as vscode from 'vscode';
-import { PatternManager } from './services/patternManager';
-import { DecorationManager } from './services/decorationManager';
-import { PatternTreeProvider } from './views/patternTreeProvider';
-import { PatternCommands } from './commands/patternCommands';
+import * as vscode from "vscode";
+import { PatternManager } from "./services/patternManager";
+import { DecorationManager } from "./services/decorationManager";
+import { PatternTreeProvider } from "./views/patternTreeProvider";
+import { PatternCommands } from "./commands/patternCommands";
 
 /**
  * Main extension class that manages the lifecycle and coordination of all components
@@ -12,12 +12,13 @@ class PatternColorizationExtension {
   private decorationManager!: DecorationManager;
   private treeProvider!: PatternTreeProvider;
   private treeView!: vscode.TreeView<any>;
+  private patternCommands!: PatternCommands;
 
   /**
    * Activate the extension
    */
   public activate(context: vscode.ExtensionContext): void {
-    console.log('Pattern Colorization extension is activating...');
+    console.log("Pattern Colorization extension is activating...");
 
     try {
       // Initialize core services
@@ -35,10 +36,15 @@ class PatternColorizationExtension {
       // Initial update
       this.decorationManager.updateAllEditors();
 
-      console.log('Pattern Colorization extension activated successfully');
+      console.log("Pattern Colorization extension activated successfully");
     } catch (error) {
-      console.error('Failed to activate Pattern Colorization extension:', error);
-      vscode.window.showErrorMessage(`Failed to activate Pattern Colorization: ${error}`);
+      console.error(
+        "Failed to activate Pattern Colorization extension:",
+        error
+      );
+      vscode.window.showErrorMessage(
+        `Failed to activate Pattern Colorization: ${error}`
+      );
     }
   }
 
@@ -46,18 +52,22 @@ class PatternColorizationExtension {
    * Deactivate the extension
    */
   public deactivate(): void {
-    console.log('Pattern Colorization extension is deactivating...');
+    console.log("Pattern Colorization extension is deactivating...");
 
     try {
       // Dispose of all services and components
+      if (this.patternCommands) {
+        this.patternCommands.dispose();
+      }
+
       if (this.decorationManager) {
         this.decorationManager.dispose();
       }
-      
+
       if (this.treeProvider) {
         this.treeProvider.dispose();
       }
-      
+
       if (this.patternManager) {
         this.patternManager.dispose();
       }
@@ -66,9 +76,9 @@ class PatternColorizationExtension {
         this.treeView.dispose();
       }
 
-      console.log('Pattern Colorization extension deactivated successfully');
+      console.log("Pattern Colorization extension deactivated successfully");
     } catch (error) {
-      console.error('Error during extension deactivation:', error);
+      console.error("Error during extension deactivation:", error);
     }
   }
 
@@ -80,7 +90,10 @@ class PatternColorizationExtension {
     this.patternManager = new PatternManager(context);
 
     // Initialize decoration manager
-    this.decorationManager = new DecorationManager(this.patternManager, context);
+    this.decorationManager = new DecorationManager(
+      this.patternManager,
+      context
+    );
 
     // Initialize tree provider
     this.treeProvider = new PatternTreeProvider(this.patternManager);
@@ -91,27 +104,38 @@ class PatternColorizationExtension {
    */
   private setupUI(context: vscode.ExtensionContext): void {
     // Create tree view for Explorer with enhanced accessibility
-    this.treeView = vscode.window.createTreeView('patternColorizationView', {
+    this.treeView = vscode.window.createTreeView("patternColorizationView", {
       treeDataProvider: this.treeProvider,
       showCollapseAll: false,
       canSelectMany: false,
       dragAndDropController: undefined, // Disable for now
-      manageCheckboxStateManually: false
+      manageCheckboxStateManually: false,
     });
 
     // Set initial tree view properties for better UX
-    this.treeView.title = 'Pattern Colorization';
+    this.treeView.title = "Pattern Colorization";
     this.treeView.badge = undefined; // Will be updated based on active patterns
-    
+
+    // Debug: Log initial patterns
+    const initialPatterns = this.patternManager.getPatterns();
+    console.log(
+      "Initial patterns loaded:",
+      initialPatterns.length,
+      initialPatterns
+    );
+
     // Update tree view description dynamically
     this.updateTreeViewDescription();
     this.updateTreeViewBadge();
 
     // Listen for pattern changes to update UI elements
     this.patternManager.onDidChangePatterns(() => {
+      console.log("Extension: Pattern change detected, updating UI");
       this.updateTreeViewDescription();
       this.updateTreeViewBadge();
       this.updateStatusBar();
+      // Force refresh the tree view
+      this.treeProvider.refresh();
     });
 
     // Setup tree view event handlers
@@ -119,12 +143,16 @@ class PatternColorizationExtension {
       // Handle selection changes for accessibility
       if (event.selection.length > 0) {
         const item = event.selection[0];
-        if (item.contextValue === 'patternItem') {
+        if (item.contextValue === "patternItem") {
           // Announce selection to screen readers
-          const pattern = this.patternManager.getPatterns().find(p => p.id === item.id);
+          const pattern = this.patternManager
+            .getPatterns()
+            .find((p) => p.id === item.id);
           if (pattern) {
             vscode.window.setStatusBarMessage(
-              `Selected pattern: ${pattern.text} (${item.enabled ? 'active' : 'inactive'})`,
+              `Selected pattern: ${pattern.text} (${
+                item.enabled ? "active" : "inactive"
+              })`,
               2000
             );
           }
@@ -147,7 +175,7 @@ class PatternColorizationExtension {
    * Register all commands
    */
   private registerCommands(context: vscode.ExtensionContext): void {
-    new PatternCommands(
+    this.patternCommands = new PatternCommands(
       this.patternManager,
       this.decorationManager,
       this.treeProvider,
@@ -160,79 +188,103 @@ class PatternColorizationExtension {
    */
   private setupEventHandlers(context: vscode.ExtensionContext): void {
     // Listen for workspace folder changes
-    vscode.workspace.onDidChangeWorkspaceFolders(() => {
-      console.log('Workspace folders changed, updating pattern decorations');
-      this.decorationManager.updateAllEditors();
-    }, null, context.subscriptions);
+    vscode.workspace.onDidChangeWorkspaceFolders(
+      () => {
+        console.log("Workspace folders changed, updating pattern decorations");
+        this.decorationManager.updateAllEditors();
+      },
+      null,
+      context.subscriptions
+    );
 
     // Listen for theme changes with enhanced handling
-    vscode.window.onDidChangeActiveColorTheme((theme) => {
-      console.log(`Color theme changed to: ${theme.kind}`);
-      // Announce theme change to screen readers
-      vscode.window.setStatusBarMessage(
-        `$(color-mode) Theme changed - refreshing pattern colors...`,
-        2000
-      );
-      
-      // Refresh decorations when theme changes with a slight delay
-      setTimeout(() => {
-        this.decorationManager.refresh();
-        this.treeProvider.refresh();
-      }, 150);
-    }, null, context.subscriptions);
-
-    // Listen for configuration changes specific to our extension
-    vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration('patternColorization')) {
-        console.log('Pattern colorization configuration changed');
-        this.handleConfigurationChange();
-        
-        // Provide feedback for configuration changes
-        const config = vscode.workspace.getConfiguration('patternColorization');
-        const enabled = config.get('enabled', true);
+    vscode.window.onDidChangeActiveColorTheme(
+      (theme) => {
+        console.log(`Color theme changed to: ${theme.kind}`);
+        // Announce theme change to screen readers
         vscode.window.setStatusBarMessage(
-          `$(gear) Pattern highlighting ${enabled ? 'enabled' : 'disabled'}`,
+          `$(color-mode) Theme changed - refreshing pattern colors...`,
           2000
         );
-      }
-    }, null, context.subscriptions);
+
+        // Refresh decorations when theme changes with a slight delay
+        setTimeout(() => {
+          this.decorationManager.refresh();
+          this.treeProvider.refresh();
+        }, 150);
+      },
+      null,
+      context.subscriptions
+    );
+
+    // Listen for configuration changes specific to our extension
+    vscode.workspace.onDidChangeConfiguration(
+      (event) => {
+        if (event.affectsConfiguration("patternColorization")) {
+          console.log("Pattern colorization configuration changed");
+          this.handleConfigurationChange();
+
+          // Provide feedback for configuration changes
+          const config = vscode.workspace.getConfiguration(
+            "patternColorization"
+          );
+          const enabled = config.get("enabled", true);
+          vscode.window.setStatusBarMessage(
+            `$(gear) Pattern highlighting ${enabled ? "enabled" : "disabled"}`,
+            2000
+          );
+        }
+      },
+      null,
+      context.subscriptions
+    );
 
     // Listen for window state changes
-    vscode.window.onDidChangeWindowState((windowState) => {
-      if (windowState.focused) {
-        // Refresh decorations when window gains focus
-        console.log('Window gained focus, updating decorations');
-        this.decorationManager.updateAllEditors();
-      }
-    }, null, context.subscriptions);
+    vscode.window.onDidChangeWindowState(
+      (windowState) => {
+        if (windowState.focused) {
+          // Refresh decorations when window gains focus
+          console.log("Window gained focus, updating decorations");
+          this.decorationManager.updateAllEditors();
+        }
+      },
+      null,
+      context.subscriptions
+    );
 
     // Listen for editor focus changes for better accessibility
-    vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor) {
-        const patterns = this.patternManager.getEnabledPatterns();
-        if (patterns.length > 0) {
-          // Brief status message for screen readers
-          setTimeout(() => {
-            vscode.window.setStatusBarMessage(
-              `$(symbol-color) ${patterns.length} pattern${patterns.length !== 1 ? 's' : ''} active in this file`,
-              1500
-            );
-          }, 500);
+    vscode.window.onDidChangeActiveTextEditor(
+      (editor) => {
+        if (editor) {
+          const patterns = this.patternManager.getEnabledPatterns();
+          if (patterns.length > 0) {
+            // Brief status message for screen readers
+            setTimeout(() => {
+              vscode.window.setStatusBarMessage(
+                `$(symbol-color) ${patterns.length} pattern${
+                  patterns.length !== 1 ? "s" : ""
+                } active in this file`,
+                1500
+              );
+            }, 500);
+          }
         }
-      }
-    }, null, context.subscriptions);
+      },
+      null,
+      context.subscriptions
+    );
   }
 
   /**
    * Handle configuration changes
    */
   private handleConfigurationChange(): void {
-    const config = vscode.workspace.getConfiguration('patternColorization');
-    
+    const config = vscode.workspace.getConfiguration("patternColorization");
+
     this.patternManager.updateConfig({
-      enabled: config.get('enabled', true),
-      caseSensitive: config.get('caseSensitive', false),
-      wholeWord: config.get('wholeWord', false)
+      enabled: config.get("enabled", true),
+      caseSensitive: config.get("caseSensitive", false),
+      wholeWord: config.get("wholeWord", false),
     });
 
     this.updateTreeViewDescription();
@@ -255,12 +307,14 @@ class PatternColorizationExtension {
     if (this.treeView) {
       const patterns = this.patternManager.getPatterns();
       const config = this.patternManager.getConfig();
-      const enabledCount = patterns.filter(p => p.enabled).length;
-      
+      const enabledCount = patterns.filter((p) => p.enabled).length;
+
       if (config.enabled && enabledCount > 0) {
         this.treeView.badge = {
-          tooltip: `${enabledCount} active pattern${enabledCount !== 1 ? 's' : ''}`,
-          value: enabledCount
+          tooltip: `${enabledCount} active pattern${
+            enabledCount !== 1 ? "s" : ""
+          }`,
+          value: enabledCount,
         };
       } else {
         this.treeView.badge = undefined;
@@ -274,11 +328,13 @@ class PatternColorizationExtension {
   private updateStatusBar(): void {
     const patterns = this.patternManager.getPatterns();
     const config = this.patternManager.getConfig();
-    const enabledCount = patterns.filter(p => p.enabled).length;
-    
+    const enabledCount = patterns.filter((p) => p.enabled).length;
+
     if (config.enabled && enabledCount > 0) {
       vscode.window.setStatusBarMessage(
-        `$(symbol-color) ${enabledCount} pattern${enabledCount !== 1 ? 's' : ''} active`,
+        `$(symbol-color) ${enabledCount} pattern${
+          enabledCount !== 1 ? "s" : ""
+        } active`,
         3000
       );
     }
