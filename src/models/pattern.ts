@@ -84,4 +84,5 @@ export interface PatternTreeItem {
   colorIndex: number;
   enabled: boolean;
   contextValue: string;
+  globalEnabled?: boolean;
 }

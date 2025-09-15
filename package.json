@@ -2,7 +2,7 @@
   "name": "pattern-colorization",
   "displayName": "Pattern Colorization",
   "description": "Highlight up to 8 words/patterns with different background colors",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "publisher": "shaktiman",
   "icon": "icon.png",
   "repository": {
@@ -75,8 +75,14 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "patternColorization.toggleHighlighting",
-        "title": "Toggle Highlighting",
+        "command": "patternColorization.enableHighlighting",
+        "title": "Enable Highlighting",
+        "category": "Pattern Colorization",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "patternColorization.disableHighlighting",
+        "title": "Disable Highlighting",
         "category": "Pattern Colorization",
         "icon": "$(eye)"
       },
@@ -155,8 +161,13 @@
           "group": "navigation@1"
         },
         {
-          "command": "patternColorization.toggleHighlighting",
-          "when": "view == patternColorizationView",
+          "command": "patternColorization.enableHighlighting",
+          "when": "view == patternColorizationView && !config.patternColorization.enabled",
+          "group": "navigation@2"
+        },
+        {
+          "command": "patternColorization.disableHighlighting",
+          "when": "view == patternColorizationView && config.patternColorization.enabled",
           "group": "navigation@2"
         },
         {
@@ -461,6 +472,42 @@
         "defaults": {
           "dark": "#9CA3AF",
           "light": "#424242",
+          "highContrast": "#888888"
+        }
+      },
+      {
+        "id": "patternColorization.colorGray.foreground",
+        "description": "Foreground/text color for disabled pattern (Soft Gray)",
+        "defaults": {
+          "dark": "#6B7280",
+          "light": "#9CA3AF",
+          "highContrast": "#888888"
+        }
+      },
+      {
+        "id": "patternColorization.colorGray.background",
+        "description": "Background color for disabled pattern (Soft Gray)",
+        "defaults": {
+          "dark": "#6B728060",
+          "light": "#9CA3AF88",
+          "highContrast": "#6B7280"
+        }
+      },
+      {
+        "id": "patternColorization.colorGray.border",
+        "description": "Border color for disabled pattern (Soft Gray)",
+        "defaults": {
+          "dark": "#6B7280",
+          "light": "#9CA3AF",
+          "highContrast": "#6B7280"
+        }
+      },
+      {
+        "id": "patternColorization.disabledText",
+        "description": "Text color for patterns when highlighting is globally disabled",
+        "defaults": {
+          "dark": "#6B7280",
+          "light": "#9CA3AF",
           "highContrast": "#888888"
         }
       }

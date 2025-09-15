@@ -36,7 +36,8 @@ export class PatternCommands {
       "patternColorization.deletePattern",
       "patternColorization.clearPatterns",
       "patternColorization.refreshPatterns",
-      "patternColorization.toggleHighlighting",
+      "patternColorization.enableHighlighting",
+      "patternColorization.disableHighlighting",
       "patternColorization.togglePattern",
       "patternColorization.editPattern",
       "patternColorization.addFromSelection",
@@ -65,8 +66,10 @@ export class PatternCommands {
                 return this.clearPatterns();
               case "patternColorization.refreshPatterns":
                 return this.refreshPatterns();
-              case "patternColorization.toggleHighlighting":
-                return this.toggleHighlighting();
+              case "patternColorization.enableHighlighting":
+                return this.enableHighlighting();
+              case "patternColorization.disableHighlighting":
+                return this.disableHighlighting();
               case "patternColorization.togglePattern":
                 return this.togglePattern(
                   typeof args[0] === "string" ? args[0] : args[0]?.id
@@ -539,16 +542,18 @@ export class PatternCommands {
   }
 
   /**
-   * Toggle highlighting on/off
+   * Enable highlighting
    */
-  private async toggleHighlighting(): Promise<void> {
+  private async enableHighlighting(): Promise<void> {
     try {
       const config = this.patternManager.getConfig();
-      const newState = !config.enabled;
+      if (config.enabled) {
+        return; // Already enabled
+      }
 
       // Show immediate feedback
       const statusBarMessage = vscode.window.setStatusBarMessage(
-        `🎨 ${newState ? "Enabling" : "Disabling"} pattern highlighting...`
+        "$(eye) Enabling pattern highlighting..."
       );
 
       this.decorationManager.toggleHighlighting();
@@ -557,17 +562,66 @@ export class PatternCommands {
       // Clear status bar message
       statusBarMessage.dispose();
 
-      // Highlighting toggled silently
+      // Show final state
+      vscode.window.setStatusBarMessage(
+        "$(eye) Pattern highlighting enabled",
+        2000
+      );
     } catch (error) {
       vscode.window
         .showErrorMessage(
-          `❌ Failed to toggle highlighting: ${error}`,
+          `❌ Failed to enable highlighting: ${error}`,
           "Retry",
           "Report Issue"
         )
         .then((selection) => {
           if (selection === "Retry") {
-            this.toggleHighlighting();
+            this.enableHighlighting();
+          } else if (selection === "Report Issue") {
+            vscode.env.openExternal(
+              vscode.Uri.parse("https://github.com/your-repo/issues")
+            );
+          }
+        });
+    }
+  }
+
+  /**
+   * Disable highlighting
+   */
+  private async disableHighlighting(): Promise<void> {
+    try {
+      const config = this.patternManager.getConfig();
+      if (!config.enabled) {
+        return; // Already disabled
+      }
+
+      // Show immediate feedback
+      const statusBarMessage = vscode.window.setStatusBarMessage(
+        "$(eye-closed) Disabling pattern highlighting..."
+      );
+
+      this.decorationManager.toggleHighlighting();
+      this.treeProvider.refresh();
+
+      // Clear status bar message
+      statusBarMessage.dispose();
+
+      // Show final state
+      vscode.window.setStatusBarMessage(
+        "$(eye-closed) Pattern highlighting disabled",
+        2000
+      );
+    } catch (error) {
+      vscode.window
+        .showErrorMessage(
+          `❌ Failed to disable highlighting: ${error}`,
+          "Retry",
+          "Report Issue"
+        )
+        .then((selection) => {
+          if (selection === "Retry") {
+            this.disableHighlighting();
           } else if (selection === "Report Issue") {
             vscode.env.openExternal(
               vscode.Uri.parse("https://github.com/your-repo/issues")
@@ -1531,6 +1585,28 @@ export class PatternCommands {
         3000
       );
     }
+  }
+
+  /**
+   * Get current highlighting state (for dynamic UI updates)
+   */
+  public getHighlightingState(): {
+    enabled: boolean;
+    icon: string;
+    tooltip: string;
+    command: string;
+  } {
+    const config = this.patternManager.getConfig();
+    return {
+      enabled: config.enabled,
+      icon: config.enabled ? "$(eye)" : "$(eye-closed)",
+      tooltip: config.enabled
+        ? "Disable pattern highlighting"
+        : "Enable pattern highlighting",
+      command: config.enabled
+        ? "patternColorization.disableHighlighting"
+        : "patternColorization.enableHighlighting",
+    };
   }
 
   // Removed confusing inline add and select color methods - functionality moved to direct input

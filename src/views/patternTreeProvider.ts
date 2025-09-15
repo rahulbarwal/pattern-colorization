@@ -27,6 +27,8 @@ export class PatternTreeProvider
    * Refresh the tree view
    */
   public refresh(): void {
+    // Update global state display when refreshing
+    this.updateGlobalStateDisplay();
     this._onDidChangeTreeData.fire();
   }
 
@@ -68,6 +70,17 @@ export class PatternTreeProvider
     if (element.contextValue === "patternItem" && !element.enabled) {
       // Use a resource URI to apply subtle styling to disabled patterns
       item.resourceUri = vscode.Uri.parse(`disabled-pattern:${element.id}`);
+    }
+
+    // Add visual styling for patterns when global highlighting is disabled
+    if (
+      element.contextValue === "patternItem" &&
+      element.globalEnabled === false
+    ) {
+      // Use a different resource URI to apply muted styling when global highlighting is off
+      item.resourceUri = vscode.Uri.parse(
+        `globally-disabled-pattern:${element.id}`
+      );
     }
 
     // Add accessibility properties
@@ -140,7 +153,7 @@ export class PatternTreeProvider
    */
   private createTreeItem(
     pattern: Pattern,
-    _globalEnabled: boolean
+    globalEnabled: boolean
   ): PatternTreeItem {
     // Clean pattern text without any symbols or indicators
     let patternText = pattern.text;
@@ -158,6 +171,8 @@ export class PatternTreeProvider
       colorIndex: pattern.colorIndex,
       enabled: pattern.enabled,
       contextValue: "patternItem",
+      // Add global state information
+      globalEnabled: globalEnabled,
     };
 
     return item;
@@ -244,7 +259,7 @@ export class PatternTreeProvider
       );
     } else if (!config.enabled) {
       tooltip.appendMarkdown(
-        "**Status:** $(circle-slash) Highlighting disabled globally\n"
+        "**Status:** $(eye-closed) Highlighting disabled globally - Use the central toggle to enable\n"
       );
     } else {
       tooltip.appendMarkdown(
@@ -296,19 +311,21 @@ export class PatternTreeProvider
       );
     }
 
-    // For pattern items, only show colored circle when pattern is enabled
+    // For pattern items, show colored circle when pattern is enabled and global highlighting is on
     if (item.contextValue === "patternItem") {
       if (item.enabled) {
-        const colorIndex = item.colorIndex;
         return new vscode.ThemeIcon(
           "circle-filled",
           new vscode.ThemeColor(
-            `patternColorization.color${colorIndex}.foreground`
+            `patternColorization.color${item.colorIndex}.foreground`
           )
         );
       }
-      // No icon for disabled patterns - provides clear visual feedback
-      return undefined;
+
+      return new vscode.ThemeIcon(
+        "circle-large-outline",
+        new vscode.ThemeColor(`patternColorization.colorGray.foreground`)
+      );
     }
 
     return undefined;
@@ -485,5 +502,54 @@ export class PatternTreeProvider
    */
   public dispose(): void {
     this._onDidChangeTreeData.dispose();
+  }
+
+  /**
+   * Get the current icon state for the central toggle button
+   */
+  public getToggleIcon(): string {
+    const config = this.patternManager.getConfig();
+    return config.enabled ? "$(eye)" : "$(eye-closed)";
+  }
+
+  /**
+   * Get the current toggle state description
+   */
+  public getToggleDescription(): string {
+    const config = this.patternManager.getConfig();
+    return config.enabled
+      ? "Disable pattern highlighting"
+      : "Enable pattern highlighting";
+  }
+
+  /**
+   * Update tree view with current global state information
+   */
+  public updateGlobalStateDisplay(): void {
+    const config = this.patternManager.getConfig();
+    const patterns = this.patternManager.getPatterns();
+
+    if (!config.enabled) {
+      // When highlighting is globally disabled, update the description to indicate this
+      const summary =
+        patterns.length > 0
+          ? `${patterns.length} patterns • highlighting disabled`
+          : "highlighting disabled";
+
+      // This will be used by extension.ts to update the tree view
+      this._globalStateDescription = summary;
+    } else {
+      // Normal state - use regular summary
+      this._globalStateDescription = this.getSummary();
+    }
+  }
+
+  private _globalStateDescription: string = "";
+
+  /**
+   * Get the global state description for the tree view
+   */
+  public getGlobalStateDescription(): string {
+    return this._globalStateDescription || this.getSummary();
   }
 }
