@@ -73,9 +73,14 @@ export class PatternTreeProvider
     }
 
     // Add visual styling for patterns when global highlighting is disabled
-    if (element.contextValue === "patternItem" && element.globalEnabled === false) {
+    if (
+      element.contextValue === "patternItem" &&
+      element.globalEnabled === false
+    ) {
       // Use a different resource URI to apply muted styling when global highlighting is off
-      item.resourceUri = vscode.Uri.parse(`globally-disabled-pattern:${element.id}`);
+      item.resourceUri = vscode.Uri.parse(
+        `globally-disabled-pattern:${element.id}`
+      );
     }
 
     // Add accessibility properties
@@ -308,19 +313,19 @@ export class PatternTreeProvider
 
     // For pattern items, show colored circle when pattern is enabled and global highlighting is on
     if (item.contextValue === "patternItem") {
-      const isEffectivelyEnabled = item.enabled && (item.globalEnabled !== false);
-      
-      if (isEffectivelyEnabled) {
-        const colorIndex = item.colorIndex;
+      if (item.enabled) {
         return new vscode.ThemeIcon(
           "circle-filled",
           new vscode.ThemeColor(
-            `patternColorization.color${colorIndex}.foreground`
+            `patternColorization.color${item.colorIndex}.foreground`
           )
         );
       }
-      // No icon for disabled patterns or when global highlighting is off - provides clear visual feedback
-      return undefined;
+
+      return new vscode.ThemeIcon(
+        "circle-large-outline",
+        new vscode.ThemeColor(`patternColorization.colorGray.foreground`)
+      );
     }
 
     return undefined;
@@ -512,7 +517,9 @@ export class PatternTreeProvider
    */
   public getToggleDescription(): string {
     const config = this.patternManager.getConfig();
-    return config.enabled ? "Disable pattern highlighting" : "Enable pattern highlighting";
+    return config.enabled
+      ? "Disable pattern highlighting"
+      : "Enable pattern highlighting";
   }
 
   /**
@@ -521,13 +528,14 @@ export class PatternTreeProvider
   public updateGlobalStateDisplay(): void {
     const config = this.patternManager.getConfig();
     const patterns = this.patternManager.getPatterns();
-    
+
     if (!config.enabled) {
       // When highlighting is globally disabled, update the description to indicate this
-      const summary = patterns.length > 0 
-        ? `${patterns.length} patterns • highlighting disabled` 
-        : "highlighting disabled";
-      
+      const summary =
+        patterns.length > 0
+          ? `${patterns.length} patterns • highlighting disabled`
+          : "highlighting disabled";
+
       // This will be used by extension.ts to update the tree view
       this._globalStateDescription = summary;
     } else {
@@ -535,9 +543,9 @@ export class PatternTreeProvider
       this._globalStateDescription = this.getSummary();
     }
   }
-  
+
   private _globalStateDescription: string = "";
-  
+
   /**
    * Get the global state description for the tree view
    */
