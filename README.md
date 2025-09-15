@@ -8,6 +8,8 @@ A powerful VS Code extension that enables users to highlight up to eight distinc
     <source src="./extension-intro.mp4" type="video/mp4" />
 </video>
 
+[Extension intro](./extension-intro.mp4)
+
 ## Features
 
 - 🎨 **Eight Color Highlighting**: Highlight up to 8 different patterns with distinct muted background colors
