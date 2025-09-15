@@ -546,9 +546,11 @@ export class PatternCommands {
       const config = this.patternManager.getConfig();
       const newState = !config.enabled;
 
-      // Show immediate feedback
+      // Show immediate feedback with appropriate icon
+      const icon = newState ? "$(eye)" : "$(eye-closed)";
+      const action = newState ? "Enabling" : "Disabling";
       const statusBarMessage = vscode.window.setStatusBarMessage(
-        `🎨 ${newState ? "Enabling" : "Disabling"} pattern highlighting...`
+        `${icon} ${action} pattern highlighting...`
       );
 
       this.decorationManager.toggleHighlighting();
@@ -557,7 +559,13 @@ export class PatternCommands {
       // Clear status bar message
       statusBarMessage.dispose();
 
-      // Highlighting toggled silently
+      // Show final state with appropriate feedback
+      const finalIcon = newState ? "$(eye)" : "$(eye-closed)";
+      const finalState = newState ? "enabled" : "disabled";
+      vscode.window.setStatusBarMessage(
+        `${finalIcon} Pattern highlighting ${finalState}`,
+        2000
+      );
     } catch (error) {
       vscode.window
         .showErrorMessage(
@@ -1531,6 +1539,18 @@ export class PatternCommands {
         3000
       );
     }
+  }
+
+  /**
+   * Get current highlighting state (for dynamic UI updates)
+   */
+  public getHighlightingState(): { enabled: boolean; icon: string; tooltip: string } {
+    const config = this.patternManager.getConfig();
+    return {
+      enabled: config.enabled,
+      icon: config.enabled ? "$(eye)" : "$(eye-closed)",
+      tooltip: config.enabled ? "Disable pattern highlighting" : "Enable pattern highlighting"
+    };
   }
 
   // Removed confusing inline add and select color methods - functionality moved to direct input

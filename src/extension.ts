@@ -295,7 +295,7 @@ class PatternColorizationExtension {
    */
   private updateTreeViewDescription(): void {
     if (this.treeView && this.treeProvider) {
-      const summary = this.treeProvider.getSummary();
+      const summary = this.treeProvider.getGlobalStateDescription();
       this.treeView.description = summary;
     }
   }
