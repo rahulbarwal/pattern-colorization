@@ -2,6 +2,10 @@
 
 A powerful VS Code extension that enables users to highlight up to eight distinct words or patterns in any text file using carefully chosen muted background colors. Perfect for analyzing log files, code reviews, and data analysis.
 
+## Demo
+
+[Extension demo](./extension-intro.gif)
+
 ## Features
 
 - 🎨 **Eight Color Highlighting**: Highlight up to 8 different patterns with distinct muted background colors
