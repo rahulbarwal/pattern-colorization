@@ -3,6 +3,7 @@ import { PatternManager } from "./services/patternManager";
 import { DecorationManager } from "./services/decorationManager";
 import { PatternTreeProvider } from "./views/patternTreeProvider";
 import { PatternCommands } from "./commands/patternCommands";
+import { TreeDecorationProvider } from "./services/treeDecorationProvider";
 
 /**
  * Main extension class that manages the lifecycle and coordination of all components
@@ -13,6 +14,7 @@ class PatternColorizationExtension {
   private treeProvider!: PatternTreeProvider;
   private treeView!: vscode.TreeView<any>;
   private patternCommands!: PatternCommands;
+  private treeDecorationProvider!: TreeDecorationProvider;
 
   /**
    * Activate the extension
@@ -97,6 +99,9 @@ class PatternColorizationExtension {
 
     // Initialize tree provider
     this.treeProvider = new PatternTreeProvider(this.patternManager);
+
+    // Initialize tree decoration provider
+    this.treeDecorationProvider = new TreeDecorationProvider();
   }
 
   /**
@@ -111,6 +116,11 @@ class PatternColorizationExtension {
       dragAndDropController: undefined, // Disable for now
       manageCheckboxStateManually: false,
     });
+
+    // Register tree decoration provider for styling disabled patterns
+    const decorationProviderDisposable =
+      vscode.window.registerFileDecorationProvider(this.treeDecorationProvider);
+    context.subscriptions.push(decorationProviderDisposable);
 
     // Set initial tree view properties for better UX
     this.treeView.title = "Pattern Colorization";
@@ -128,12 +138,19 @@ class PatternColorizationExtension {
     this.updateTreeViewDescription();
     this.updateTreeViewBadge();
 
+    // Set initial state for decoration provider
+    const initialConfig = this.patternManager.getConfig();
+    this.treeDecorationProvider.updateGlobalState(!initialConfig.enabled);
+
     // Listen for pattern changes to update UI elements
     this.patternManager.onDidChangePatterns(() => {
       console.log("Extension: Pattern change detected, updating UI");
       this.updateTreeViewDescription();
       this.updateTreeViewBadge();
       this.updateStatusBar();
+      // Update decoration provider with current global state
+      const config = this.patternManager.getConfig();
+      this.treeDecorationProvider.updateGlobalState(!config.enabled);
       // Force refresh the tree view
       this.treeProvider.refresh();
     });
