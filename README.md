@@ -4,11 +4,11 @@ A powerful VS Code extension that enables users to highlight up to eight distinc
 
 ## Demo
 
-<video  autoplay playsinline style="pointer-events: none;">
-    <source src="./extension-intro.mp4" type="video/mp4" />
-</video>
-
 [Extension intro](./extension-intro.mp4)
+
+| Light                                | Dark                               |
+| ------------------------------------ | ---------------------------------- |
+| ![@light.png](./resources/light.png) | ![@dark.png](./resources/dark.png) |
 
 ## Features
 
