@@ -2,7 +2,7 @@
   "name": "pattern-colorization",
   "displayName": "Pattern Colorization",
   "description": "Highlight up to 8 words/patterns with different background colors",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "publisher": "shaktiman",
   "icon": "icon.png",
   "repository": {
